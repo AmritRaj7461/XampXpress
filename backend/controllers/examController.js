@@ -1,0 +1,184 @@
+const Exam = require('../models/Exam');
+const Result = require('../models/Result');
+const User = require('../models/User');
+
+// @desc    Create an exam
+// @route   POST /api/exams
+// @access  Private/Teacher
+const createExam = async (req, res) => {
+  try {
+    const { title, subject, timeLimit, questions, examDate, assignedTo } = req.body;
+
+    const exam = new Exam({
+      title,
+      subject,
+      timeLimit,
+      questions,
+      examDate,
+      assignedTo: assignedTo || [],
+      createdBy: req.user._id,
+    });
+
+    const createdExam = await exam.save();
+    res.status(201).json(createdExam);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get all exams (for student list or teacher's own exams)
+// @route   GET /api/exams
+// @access  Private
+const getExams = async (req, res) => {
+  try {
+    if (req.user.role === 'teacher') {
+      const exams = await Exam.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+      res.json(exams);
+    } else {
+      // Students see exams assigned to them or to the entire class (assignedTo is empty)
+      const exams = await Exam.find({
+        $or: [
+          { assignedTo: { $size: 0 } },
+          { assignedTo: req.user._id }
+        ]
+      }).populate('createdBy', 'name').sort({ examDate: 1 });
+      
+      // Exclude correct answers for students before they take it
+      const sanitizedExams = exams.map(exam => {
+        const sanitizedQuestions = exam.questions.map(q => ({
+          _id: q._id,
+          questionText: q.questionText,
+          options: q.options,
+        }));
+        return {
+          ...exam._doc,
+          questions: sanitizedQuestions,
+        };
+      });
+      res.json(sanitizedExams);
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get single exam by ID
+// @route   GET /api/exams/:id
+// @access  Private
+const getExamById = async (req, res) => {
+  try {
+    const exam = await Exam.findById(req.params.id);
+    
+    if (exam) {
+      if (req.user.role === 'student') {
+        const sanitizedQuestions = exam.questions.map(q => ({
+          _id: q._id,
+          questionText: q.questionText,
+          options: q.options,
+        }));
+        const sanitizedExam = { ...exam._doc, questions: sanitizedQuestions };
+        res.json(sanitizedExam);
+      } else {
+        res.json(exam);
+      }
+    } else {
+      res.status(404).json({ message: 'Exam not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Submit an exam
+// @route   POST /api/exams/:id/submit
+// @access  Private/Student
+const submitExam = async (req, res) => {
+  try {
+    const { responses, violated = false } = req.body;
+    const exam = await Exam.findById(req.params.id);
+
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam not found' });
+    }
+
+    let score = 0;
+    let attempted = 0;
+    const evaluatedResponses = [];
+
+    responses.forEach(userResponse => {
+      const question = exam.questions.find(q => q._id.toString() === userResponse.questionId);
+      if (question) {
+        attempted++;
+        const isCorrect = question.correctAnswer === userResponse.selectedOption;
+        if (isCorrect) score++;
+
+        evaluatedResponses.push({
+          questionId: question._id,
+          selectedOption: userResponse.selectedOption,
+          isCorrect
+        });
+      }
+    });
+
+    const totalQuestions = exam.questions.length;
+    const accuracy = attempted > 0 ? (score / attempted) * 100 : 0;
+
+    const result = new Result({
+      student: req.user._id,
+      exam: exam._id,
+      type: 'teacher',
+      violated,
+      score,
+      totalQuestions,
+      accuracy,
+      attempted,
+      responses: evaluatedResponses,
+    });
+
+    await result.save();
+
+    // Update student stats
+    const user = await User.findById(req.user._id);
+    user.totalTests = (user.totalTests || 0) + 1;
+    user.averageScore = (((user.averageScore || 0) * (user.totalTests - 1)) + score) / user.totalTests;
+    user.accuracy = (((user.accuracy || 0) * (user.totalTests - 1)) + accuracy) / user.totalTests;
+    
+    // Fair Points: +1 for clean test, -2 for violated (min 0)
+    if (violated) {
+      user.fairPoints = Math.max(0, (user.fairPoints || 0) - 2);
+    } else {
+      user.fairPoints = (user.fairPoints || 0) + 1;
+    }
+    
+    // Streak logic (basic)
+    const today = new Date();
+    if (user.lastActive) {
+      const diffTime = Math.abs(today - user.lastActive);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      if (diffDays === 1) {
+        user.streak += 1;
+      } else if (diffDays > 1) {
+        user.streak = 1;
+      }
+    } else {
+      user.streak = 1;
+    }
+    user.lastActive = today;
+    
+    // Add badges
+    if (user.totalTests === 1 && !user.badges.includes('First Attempt')) {
+      user.badges.push('First Attempt');
+    }
+    if (user.totalTests === 10 && !user.badges.includes('Test Warrior')) {
+      user.badges.push('Test Warrior');
+    }
+
+    await user.save();
+
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createExam, getExams, getExamById, submitExam };
