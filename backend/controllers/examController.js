@@ -197,4 +197,58 @@ const submitExam = async (req, res) => {
   }
 };
 
-module.exports = { createExam, getExams, getExamById, submitExam };
+// @desc    Update an exam
+// @route   PUT /api/exams/:id
+// @access  Private/Teacher
+const updateExam = async (req, res) => {
+  try {
+    const { title, subject, timeLimit, questions, examDate, assignedTo } = req.body;
+    const exam = await Exam.findById(req.params.id);
+
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam not found' });
+    }
+
+    // Check if the user is the creator of the exam
+    if (exam.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized to edit this exam' });
+    }
+
+    exam.title = title || exam.title;
+    exam.subject = subject || exam.subject;
+    exam.timeLimit = timeLimit !== undefined ? timeLimit : exam.timeLimit;
+    exam.questions = questions || exam.questions;
+    exam.examDate = examDate || exam.examDate;
+    exam.assignedTo = assignedTo || exam.assignedTo;
+
+    const updatedExam = await exam.save();
+    res.json(updatedExam);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete an exam
+// @route   DELETE /api/exams/:id
+// @access  Private/Teacher
+const deleteExam = async (req, res) => {
+  try {
+    const exam = await Exam.findById(req.params.id);
+
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam not found' });
+    }
+
+    // Check if the user is the creator of the exam
+    if (exam.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized to delete this exam' });
+    }
+
+    await exam.deleteOne();
+    res.json({ message: 'Exam removed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createExam, getExams, getExamById, submitExam, updateExam, deleteExam };

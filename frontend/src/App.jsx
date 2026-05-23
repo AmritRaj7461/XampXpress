@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import TeacherCreateTest from './pages/TeacherCreateTest';
+import TeacherEditTest from './pages/TeacherEditTest';
 import TeacherManageTests from './pages/TeacherManageTests';
 import TeacherSettings from './pages/TeacherSettings';
 import StudentTestList from './pages/StudentTestList';
@@ -87,6 +88,7 @@ function App() {
                     }>
                       <Route index element={<TeacherDashboard />} />
                       <Route path="create-test" element={<TeacherCreateTest />} />
+                      <Route path="edit-test/:id" element={<TeacherEditTest />} />
                       <Route path="tests" element={<TeacherManageTests />} />
                       <Route path="settings" element={<TeacherSettings />} />
                       <Route path="profile" element={<ProfilePage />} />

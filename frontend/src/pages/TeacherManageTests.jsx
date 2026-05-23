@@ -27,13 +27,12 @@ const TeacherManageTests = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this test? This action cannot be undone.')) {
       try {
-        // Backend endpoint for delete might not exist yet, we simulate it or implement it.
-        // Assuming /api/exams/:id DELETE exists
-        // await api.delete(`/exams/${id}`);
+        await api.delete(`/exams/${id}`);
         setExams(exams.filter(e => e._id !== id));
-        alert('Test deleted (Simulated)');
+        alert('Test deleted successfully');
       } catch (err) {
         console.error(err);
+        alert('Failed to delete test');
       }
     }
   };
@@ -102,9 +101,9 @@ const TeacherManageTests = () => {
                     <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{exam.questions.length}</td>
                     <td className="py-4 px-4 text-gray-500 text-sm">{new Date(exam.createdAt).toLocaleDateString()}</td>
                     <td className="py-4 px-4 flex justify-end gap-2 opacity-50 group-hover:opacity-100 transition">
-                      <button className="p-2 bg-gray-100 hover:bg-blue-100 dark:bg-gray-700 dark:hover:bg-blue-900/40 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition" title="Edit">
+                      <Link to={`/teacher/edit-test/${exam._id}`} className="p-2 bg-gray-100 hover:bg-blue-100 dark:bg-gray-700 dark:hover:bg-blue-900/40 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition" title="Edit">
                         <Edit size={18} />
-                      </button>
+                      </Link>
                       <button 
                         onClick={() => handleDelete(exam._id)}
                         className="p-2 bg-gray-100 hover:bg-red-100 dark:bg-gray-700 dark:hover:bg-red-900/40 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition" title="Delete"

@@ -7,8 +7,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const baseUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
   const api = axios.create({
-    baseURL: `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api`,
+    baseURL: `${baseUrl}/api`,
   });
 
   api.interceptors.request.use((config) => {

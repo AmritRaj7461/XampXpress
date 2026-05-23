@@ -1,12 +1,13 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, Trash2, Save, Sparkles, FileText, Upload, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const TeacherCreateTest = () => {
+const TeacherEditTest = () => {
   const { api } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState([]);
   const [examData, setExamData] = useState({
@@ -28,16 +29,31 @@ const TeacherCreateTest = () => {
   const [parsingAI, setParsingAI] = useState(false);
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get('/auth/students');
-        setStudents(res.data);
+        const [studentsRes, examRes] = await Promise.all([
+          api.get('/auth/students'),
+          api.get(`/exams/${id}`)
+        ]);
+        setStudents(studentsRes.data);
+        
+        const fetchedExam = examRes.data;
+        setExamData({
+          title: fetchedExam.title,
+          subject: fetchedExam.subject,
+          timeLimit: fetchedExam.timeLimit,
+          examDate: fetchedExam.examDate ? fetchedExam.examDate.split('T')[0] : '',
+          assignedTo: fetchedExam.assignedTo || [],
+          questions: fetchedExam.questions.length > 0 ? fetchedExam.questions : [
+            { questionText: '', options: ['', '', '', ''], correctAnswer: '' }
+          ]
+        });
       } catch (error) {
-        console.error('Failed to fetch students:', error);
+        console.error('Failed to fetch data:', error);
       }
     };
-    fetchStudents();
-  }, []);
+    fetchData();
+  }, [id]);
 
   const handleAssigneeChange = (studentId) => {
     if (studentId === 'all') {
@@ -118,11 +134,11 @@ const TeacherCreateTest = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/exams', examData);
-      navigate('/teacher');
+      await api.put(`/exams/${id}`, examData);
+      navigate('/teacher/tests');
     } catch (err) {
       console.error(err);
-      alert('Failed to create exam');
+      alert('Failed to update exam');
     } finally {
       setLoading(false);
     }
@@ -132,8 +148,8 @@ const TeacherCreateTest = () => {
     <div className="p-8 max-w-4xl mx-auto space-y-8 pb-24">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Create New Exam</h1>
-          <p className="text-gray-500">Configure exam settings and add questions.</p>
+          <h1 className="text-3xl font-bold mb-2">Edit Exam</h1>
+          <p className="text-gray-500">Modify exam settings and questions.</p>
         </div>
         <button 
           onClick={handleSubmit} 
@@ -141,7 +157,7 @@ const TeacherCreateTest = () => {
           className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-500/30 transition disabled:opacity-50"
         >
           <Save size={20} />
-          {loading ? 'Saving...' : 'Save Exam'}
+          {loading ? 'Saving...' : 'Update Exam'}
         </button>
       </div>
 
@@ -369,4 +385,4 @@ Ans: A"
   );
 };
 
-export default TeacherCreateTest;
+export default TeacherEditTest;
