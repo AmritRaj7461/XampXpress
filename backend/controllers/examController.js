@@ -105,7 +105,7 @@ const getExamById = async (req, res) => {
 // @access  Private/Student
 const submitExam = async (req, res) => {
   try {
-    const { responses, violated = false } = req.body;
+    const { responses, violated = false, violationLogs = [] } = req.body;
     const exam = await Exam.findById(req.params.id);
 
     if (!exam) {
@@ -144,6 +144,7 @@ const submitExam = async (req, res) => {
       exam: exam._id,
       type: 'teacher',
       violated,
+      violationLogs,
       score,
       totalQuestions,
       accuracy,
@@ -251,4 +252,36 @@ const deleteExam = async (req, res) => {
   }
 };
 
-module.exports = { createExam, getExams, getExamById, submitExam, updateExam, deleteExam };
+// @desc    Get all results for a specific exam
+// @route   GET /api/exams/:id/results
+// @access  Private/Teacher
+const getExamResults = async (req, res) => {
+  try {
+    const exam = await Exam.findById(req.params.id);
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam not found' });
+    }
+
+    if (exam.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized to view these results' });
+    }
+
+    const results = await Result.find({ exam: exam._id })
+      .populate('student', 'name email avatar')
+      .sort({ createdAt: -1 });
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  createExam,
+  getExams,
+  getExamById,
+  submitExam,
+  updateExam,
+  deleteExam,
+  getExamResults
+};

@@ -22,10 +22,14 @@ const ExamPage = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [violated, setViolated] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [violationLogs, setViolationLogs] = useState([]);
   const [activeWarningMsg, setActiveWarningMsg] = useState('');
   const [isEnvironmentTampered, setIsEnvironmentTampered] = useState(false);
   const timerRef = useRef(null);
+  const isEnvironmentTampered = useRef(false);
+  const timerRef = useRef(null);
   const isPausedRef = useRef(isPaused);
+  const monitorRef = useRef(null);
 
   useEffect(() => {
     isPausedRef.current = isPaused;
@@ -74,7 +78,7 @@ const ExamPage = () => {
     fetchExam();
   }, [id, api, navigate]);
 
-  const handleSubmit = async (isViolated = false) => {
+  const handleSubmit = async (isViolated = false, logsToSubmit = violationLogs) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     clearInterval(timerRef.current);
@@ -89,6 +93,7 @@ const ExamPage = () => {
       const res = await api.post(`/exams/${id}/submit`, {
         responses: formattedResponses,
         violated: isViolated || violated,
+        violationLogs: logsToSubmit,
       });
       navigate(`/student/result/${res.data._id}`);
     } catch (err) {
@@ -98,20 +103,91 @@ const ExamPage = () => {
     }
   };
 
-  const triggerViolation = (msg) => {
-    if (isPausedRef.current) return;
+  const triggerViolation = (msg, forceSubmit = false) => {
+    if (isPausedRef.current && !forceSubmit) return;
     setIsPaused(true);
     isPausedRef.current = true;
     setActiveWarningMsg(msg);
-    setWarnings(prev => {
-      const next = prev + 1;
-      if (next >= MAX_WARNINGS) {
-        setViolated(true);
-        handleSubmit(true);
-      }
-      return next;
+    
+    // Capture snapshot from webcam
+    const snapshot = monitorRef.current?.captureSnapshot() || null;
+    const newLog = { reason: msg, timestamp: new Date(), screenshotBase64: snapshot };
+    
+    setViolationLogs(prev => {
+      const updatedLogs = [...prev, newLog];
+      
+      setWarnings(prevWarn => {
+        const nextWarn = prevWarn + 1;
+        if (nextWarn >= MAX_WARNINGS || forceSubmit) {
+          setViolated(true);
+          handleSubmit(true, updatedLogs);
+        }
+        return nextWarn;
+      });
+
+      return updatedLogs;
     });
   };
+
+  const handleDeviceDetect = (msg) => {
+    triggerViolation(msg, true); // True forces immediate submit
+  };
+
+  // ── Prevent Navigation & Auto-Submit on Unload ─────────────────────────
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = ''; // Required for Chrome to show warning
+      triggerViolation('🔴 Attempted to close or reload the exam tab!');
+    };
+
+    const handleUnload = () => {
+      // Send a beacon to submit the exam if they actually leave
+      const formattedResponses = Object.keys(responses).map(qId => ({
+        questionId: qId,
+        selectedOption: responses[qId],
+      }));
+      
+      // We can't easily get the auth token for sendBeacon if it's protected by bearer token.
+      // Alternatively, we use fetch with keepalive.
+      const token = localStorage.getItem('token');
+      if (token) {
+        fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'}/api/exams/${id}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            responses: formattedResponses,
+            violated: true,
+            violationLogs: [...violationLogs, { reason: '🔴 Exam abandoned (Tab closed)', timestamp: new Date() }]
+          }),
+          keepalive: true
+        }).catch(() => {});
+      }
+    };
+
+    const blockPopState = () => {
+      triggerViolation('🔴 Attempted to navigate back!');
+      window.history.pushState(null, '', window.location.href);
+    };
+
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', blockPopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+
+    return () => {
+      window.removeEventListener('popstate', blockPopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, [hasStarted, responses, violationLogs, id]);
+
+// (Logic replaced above)
 
   // ── Fullscreen Monitoring ──────────────────────────────────────────────
   // ── Fullscreen Monitoring & Continual Enforcer ─────────────────────────
@@ -592,7 +668,12 @@ const ExamPage = () => {
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Proctoring Active</span>
               <span className="flex h-3 w-3 relative"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>
             </div>
-            <LiveMonitor onViolation={triggerViolation} isPaused={isPaused} />
+            <LiveMonitor 
+            ref={monitorRef}
+            onViolation={triggerViolation} 
+            onDeviceDetect={handleDeviceDetect}
+            isPaused={isPaused} 
+          />
           </div>
           <div className="p-4 flex-1 overflow-y-auto">
             <h3 className="font-bold mb-4 text-sm text-gray-400 uppercase tracking-wider">Question Palette</h3>

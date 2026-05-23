@@ -27,6 +27,11 @@ const resultSchema = new mongoose.Schema({
       correctAnswer: String,
     }],
   },
+  violationLogs: [{
+    reason: { type: String },
+    timestamp: { type: Date, default: Date.now },
+    screenshotBase64: { type: String },
+  }],
   violated: {
     type: Boolean,
     default: false,

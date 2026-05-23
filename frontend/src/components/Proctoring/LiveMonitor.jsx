@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 
 const loadScript = (src) => {
   return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ const drawLandmarks = (ctx, landmarks, color) => {
   }
 };
 
-const LiveMonitor = ({ onViolation, isPaused }) => {
+const LiveMonitor = forwardRef(({ onViolation, onDeviceDetect, isPaused }, ref) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [statusText, setStatusText] = useState("🔄 Starting camera...");
@@ -45,11 +45,33 @@ const LiveMonitor = ({ onViolation, isPaused }) => {
   const lookingAwayStartTime = useRef(null);
 
   const onViolationRef = useRef(onViolation);
+  const onDeviceDetectRef = useRef(onDeviceDetect);
   const isPausedRef = useRef(isPaused);
+
+  useImperativeHandle(ref, () => ({
+    captureSnapshot: () => {
+      if (videoRef.current) {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth || 640;
+        canvas.height = videoRef.current.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        // Mirror the image to match the video element's scale-x[-1]
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', 0.6);
+      }
+      return null;
+    }
+  }));
 
   useEffect(() => {
     onViolationRef.current = onViolation;
   }, [onViolation]);
+
+  useEffect(() => {
+    onDeviceDetectRef.current = onDeviceDetect;
+  }, [onDeviceDetect]);
 
   useEffect(() => {
     isPausedRef.current = isPaused;
@@ -59,7 +81,9 @@ const LiveMonitor = ({ onViolation, isPaused }) => {
     let active = true;
     let stream = null;
     let faceMesh = null;
+    let cocoSsdModel = null;
     let animationFrameId = null;
+    let detectionFrameCount = 0;
 
     const processAIResults = (results) => {
       const canvas = canvasRef.current;
@@ -140,7 +164,7 @@ const LiveMonitor = ({ onViolation, isPaused }) => {
         if (!lookingAwayStartTime.current) {
           lookingAwayStartTime.current = Date.now();
         } else if (Date.now() - lookingAwayStartTime.current > 2500) {
-          if (onViolationRef.current) onViolationRef.current("🔴 Please look straight at the screen!");
+          if (onViolationRef.current) onViolationRef.current("🔴 Please look straight at the screen (Face/Eyes turned away)!");
           lookingAwayStartTime.current = Date.now();
         }
       } else {
@@ -185,14 +209,34 @@ const LiveMonitor = ({ onViolation, isPaused }) => {
         setStatusText("🟢 AI Proctor: Active");
         setStatusType("success");
 
+        // 3.5. Load Coco-SSD for Device Detection
+        setStatusText("🔄 Loading Object Detection...");
+        await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs');
+        await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd');
+        if (!active) return;
+        cocoSsdModel = await window.cocoSsd.load();
+
+        setStatusText("🟢 Full AI Proctoring Active");
+        setStatusType("success");
+
         // 4. Start detection loop
         const detect = async () => {
           if (!active) return;
           if (!isPausedRef.current && videoRef.current && videoRef.current.readyState === 4) {
             try {
               await faceMesh.send({ image: videoRef.current });
+              
+              detectionFrameCount++;
+              // Run object detection every ~10 frames (1 second) to save CPU
+              if (cocoSsdModel && detectionFrameCount % 10 === 0) {
+                const predictions = await cocoSsdModel.detect(videoRef.current);
+                const hasPhone = predictions.some(p => p.class === 'cell phone');
+                if (hasPhone) {
+                  if (onDeviceDetectRef.current) onDeviceDetectRef.current("🔴 Unauthorized Device (Cell Phone) Detected!");
+                }
+              }
             } catch (err) {
-              console.error("FaceMesh processing error", err);
+              console.error("AI processing error", err);
             }
           }
           // Schedule next detection after a small delay (100ms = 10 FPS, saves CPU)

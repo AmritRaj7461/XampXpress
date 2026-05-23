@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Trash2, Edit, Search, Plus } from 'lucide-react';
+import { Trash2, Edit, Search, Plus, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -101,6 +101,9 @@ const TeacherManageTests = () => {
                     <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{exam.questions.length}</td>
                     <td className="py-4 px-4 text-gray-500 text-sm">{new Date(exam.createdAt).toLocaleDateString()}</td>
                     <td className="py-4 px-4 flex justify-end gap-2 opacity-50 group-hover:opacity-100 transition">
+                      <Link to={`/teacher/test-results/${exam._id}`} className="p-2 bg-gray-100 hover:bg-emerald-100 dark:bg-gray-700 dark:hover:bg-emerald-900/40 text-gray-600 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg transition" title="View Results">
+                        <FileText size={18} />
+                      </Link>
                       <Link to={`/teacher/edit-test/${exam._id}`} className="p-2 bg-gray-100 hover:bg-blue-100 dark:bg-gray-700 dark:hover:bg-blue-900/40 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition" title="Edit">
                         <Edit size={18} />
                       </Link>

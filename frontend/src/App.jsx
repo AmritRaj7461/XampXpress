@@ -10,6 +10,7 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import TeacherCreateTest from './pages/TeacherCreateTest';
 import TeacherEditTest from './pages/TeacherEditTest';
 import TeacherManageTests from './pages/TeacherManageTests';
+import TeacherTestResults from './pages/TeacherTestResults';
 import TeacherSettings from './pages/TeacherSettings';
 import StudentTestList from './pages/StudentTestList';
 import StudentHistory from './pages/StudentHistory';
@@ -90,6 +91,7 @@ function App() {
                       <Route path="create-test" element={<TeacherCreateTest />} />
                       <Route path="edit-test/:id" element={<TeacherEditTest />} />
                       <Route path="tests" element={<TeacherManageTests />} />
+                      <Route path="test-results/:id" element={<TeacherTestResults />} />
                       <Route path="settings" element={<TeacherSettings />} />
                       <Route path="profile" element={<ProfilePage />} />
                     </Route>
