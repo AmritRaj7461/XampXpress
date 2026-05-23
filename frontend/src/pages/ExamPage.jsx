@@ -26,8 +26,7 @@ const ExamPage = () => {
   const [activeWarningMsg, setActiveWarningMsg] = useState('');
   const [isEnvironmentTampered, setIsEnvironmentTampered] = useState(false);
   const timerRef = useRef(null);
-  const isEnvironmentTampered = useRef(false);
-  const timerRef = useRef(null);
+
   const isPausedRef = useRef(isPaused);
   const monitorRef = useRef(null);
 
