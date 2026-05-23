@@ -37,10 +37,12 @@ const TeacherManageTests = () => {
     }
   };
 
-  const filteredExams = exams.filter(e => 
-    e.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    e.subject.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredExams = exams.filter(e => {
+    const title = e.title || '';
+    const subject = e.subject || '';
+    return title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+           subject.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 pb-24">
@@ -97,8 +99,8 @@ const TeacherManageTests = () => {
                     <td className="py-4 px-4">
                       <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-md text-xs font-semibold">{exam.subject}</span>
                     </td>
-                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{exam.timeLimit} mins</td>
-                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{exam.questions.length}</td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{exam.timeLimit || 0} mins</td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{exam.questions?.length || 0}</td>
                     <td className="py-4 px-4 text-gray-500 text-sm">{new Date(exam.createdAt).toLocaleDateString()}</td>
                     <td className="py-4 px-4 flex justify-end gap-2 opacity-50 group-hover:opacity-100 transition">
                       <Link to={`/teacher/test-results/${exam._id}`} className="p-2 bg-gray-100 hover:bg-emerald-100 dark:bg-gray-700 dark:hover:bg-emerald-900/40 text-gray-600 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg transition" title="View Results">
