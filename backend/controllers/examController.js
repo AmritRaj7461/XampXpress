@@ -245,6 +245,9 @@ const deleteExam = async (req, res) => {
       return res.status(401).json({ message: 'Not authorized to delete this exam' });
     }
 
+    // Delete all associated results (including their violation log images)
+    await Result.deleteMany({ exam: exam._id });
+    
     await exam.deleteOne();
     res.json({ message: 'Exam removed successfully' });
   } catch (error) {
