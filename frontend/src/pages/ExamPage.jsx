@@ -270,6 +270,12 @@ const ExamPage = () => {
         return false;
       }
 
+      // 5. Whitelist Vercel/Next.js injected tags and toolbars
+      if (tagName.includes('vercel') || tagName.includes('nextjs')) return true;
+
+      // 6. Whitelist specific IDs often used by Vercel
+      if (node.id && (node.id.includes('vercel') || node.id === '__next')) return true;
+
       return false; // Block anything else outside the React root (like extension widgets, overlays, translation tools)
     };
 
