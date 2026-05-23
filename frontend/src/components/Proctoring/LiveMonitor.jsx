@@ -305,6 +305,6 @@ const LiveMonitor = forwardRef(({ onViolation, onDeviceDetect, isPaused }, ref) 
       <div className="absolute inset-0 ring-1 ring-inset ring-black/20 pointer-events-none rounded-xl z-20"></div>
     </div>
   );
-};
+});
 
 export default LiveMonitor;
