@@ -257,7 +257,9 @@ const ExamPage = () => {
             'mediapipe',
             'googleapis.com',
             'gstatic.com',
-            'google.com'
+            'google.com',
+            'vercel.live',
+            'vercel.com'
           ];
           if (whitelistedDomains.some(domain => url.hostname.includes(domain))) {
             return true;
