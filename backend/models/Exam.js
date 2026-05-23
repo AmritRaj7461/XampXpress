@@ -40,6 +40,10 @@ const examSchema = new mongoose.Schema({
       required: true,
     }
   }],
+  type: {
+    type: String,
+    default: 'teacher',
+  },
 }, { timestamps: true });
 
 const Exam = mongoose.model('Exam', examSchema);

@@ -37,3 +37,10 @@ lerna-debug.log*
 # Backend specific
 backend/uploads/resumes/
 backend/uploads/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

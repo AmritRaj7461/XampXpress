@@ -17,6 +17,7 @@ import CameraCheck from './components/Proctoring/CameraCheck';
 import ExamPage from './pages/ExamPage';
 import AIExamPage from './pages/AIExamPage';
 import ResultPage from './pages/ResultPage';
+import MobileBlocker from './components/MobileBlocker';
 
 const RootRoute = () => {
   const { user, loading } = useContext(AuthContext);
@@ -30,9 +31,10 @@ const RootRoute = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-          <Routes>
+      <MobileBlocker>
+        <Router>
+          <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+            <Routes>
             <Route path="/login" element={<AuthPage />} />
             <Route path="/register" element={<AuthPage />} />
             
@@ -95,8 +97,9 @@ function App() {
               } 
             />
           </Routes>
-        </div>
-      </Router>
+          </div>
+        </Router>
+      </MobileBlocker>
     </AuthProvider>
   );
 }

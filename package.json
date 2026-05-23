@@ -1,0 +1,22 @@
+{
+  "name": "xampxpress",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "frontend": "npm --prefix frontend run dev",
+    "backend": "npm --prefix backend start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmritRaj7461/XampXpress.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AmritRaj7461/XampXpress/issues"
+  },
+  "homepage": "https://github.com/AmritRaj7461/XampXpress#readme"
+}

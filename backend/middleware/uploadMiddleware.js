@@ -2,22 +2,28 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '..', 'uploads', 'resumes');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Ensure upload directories exist
+const resumeDir = path.join(__dirname, '..', 'uploads', 'resumes');
+if (!fs.existsSync(resumeDir)) {
+  fs.mkdirSync(resumeDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
+const avatarDir = path.join(__dirname, '..', 'uploads', 'avatars');
+if (!fs.existsSync(avatarDir)) {
+  fs.mkdirSync(avatarDir, { recursive: true });
+}
+
+// Resume Storage & Filter
+const resumeStorage = multer.diskStorage({
   destination(req, file, cb) {
-    cb(null, uploadDir);
+    cb(null, resumeDir);
   },
   filename(req, file, cb) {
     cb(null, `resume-${req.user._id}-${Date.now()}${path.extname(file.originalname)}`);
   }
 });
 
-function checkFileType(file, cb) {
+function checkResumeFileType(file, cb) {
   const filetypes = /pdf/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = filetypes.test(file.mimetype);
@@ -29,12 +35,46 @@ function checkFileType(file, cb) {
   }
 }
 
-const upload = multer({
-  storage,
+const uploadResume = multer({
+  storage: resumeStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: function (req, file, cb) {
-    checkFileType(file, cb);
+    checkResumeFileType(file, cb);
   }
 });
 
-module.exports = upload;
+// Avatar Storage & Filter
+const avatarStorage = multer.diskStorage({
+  destination(req, file, cb) {
+    cb(null, avatarDir);
+  },
+  filename(req, file, cb) {
+    cb(null, `avatar-${req.user._id}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
+function checkAvatarFileType(file, cb) {
+  const filetypes = /jpeg|jpg|png|gif|webp/;
+  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = filetypes.test(file.mimetype);
+
+  if (extname && mimetype) {
+    return cb(null, true);
+  } else {
+    cb('Error: Images Only (jpeg, jpg, png, gif, webp)!');
+  }
+}
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  fileFilter: function (req, file, cb) {
+    checkAvatarFileType(file, cb);
+  }
+});
+
+module.exports = {
+  uploadResume,
+  uploadAvatar
+};
+

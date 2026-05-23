@@ -1,4 +1,4 @@
-import { useState, useContext, useRef, useMemo } from 'react';
+import { useState, useContext, useRef, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -10,6 +10,12 @@ import {
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+// Prefix relative avatar paths (e.g. "/uploads/...") with the backend origin
+const getAvatarUrl = (avatar) => {
+  if (!avatar) return '';
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) return avatar;
+  return `${BACKEND}${avatar}`;
+};
 
 const InputField = ({ label, icon: Icon, type = 'text', readOnly, ...props }) => (
   <div className="space-y-1">
@@ -40,7 +46,6 @@ const AcademicTab = ({ form, onChange, isEditing }) => {
       <div className="space-y-1">
         <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Education Level</label>
         <select
-          disabled={!isEditing}
           value={form.educationLevel}
           onChange={e => onChange('educationLevel', e.target.value)}
           className="w-full px-3.5 py-2 bg-gray-100 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none transition-all text-sm text-gray-900 dark:text-white disabled:opacity-80"
@@ -274,6 +279,182 @@ const SaveBtn = ({ loading, onSave }) => (
   </div>
 );
 
+// ─── Crop Modal Component ───────────────────────────────────────────────────
+const CropModal = ({ imageSrc, onCrop, onClose }) => {
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imageDims, setImageDims] = useState({ width: 0, height: 0 });
+  const imageRef = useRef(null);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = imageSrc;
+    img.onload = () => {
+      const ar = img.width / img.height;
+      if (ar >= 1) {
+        // Landscape
+        setImageDims({
+          height: 320,
+          width: 320 * ar
+        });
+      } else {
+        // Portrait
+        setImageDims({
+          width: 320,
+          height: 320 / ar
+        });
+      }
+    };
+  }, [imageSrc]);
+
+  const handlePointerDown = (e) => {
+    setIsDragging(true);
+    e.target.setPointerCapture(e.pointerId);
+    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    setOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handlePointerUp = (e) => {
+    setIsDragging(false);
+    try {
+      e.target.releasePointerCapture(e.pointerId);
+    } catch (err) {}
+  };
+
+  const handleSave = () => {
+    if (!imageRef.current || !containerRef.current) return;
+
+    const img = imageRef.current;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // High quality square output size for the avatar
+    const size = 300;
+    canvas.width = size;
+    canvas.height = size;
+
+    // Clear and draw circular clip
+    ctx.clearRect(0, 0, size, size);
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    const rect = img.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+
+    // Image position relative to the container
+    const imgLeft = rect.left - containerRect.left;
+    const imgTop = rect.top - containerRect.top;
+    const imgWidth = rect.width;
+    const imgHeight = rect.height;
+
+    // The crop circle in container coordinates:
+    const cropX = (containerRect.width - 200) / 2; // 60px
+    const cropY = (containerRect.height - 200) / 2; // 60px
+    const cropSize = 200;
+
+    // Scale factors
+    const scaleX = img.naturalWidth / imgWidth;
+    const scaleY = img.naturalHeight / imgHeight;
+
+    const sx = (cropX - imgLeft) * scaleX;
+    const sy = (cropY - imgTop) * scaleY;
+    const sWidth = cropSize * scaleX;
+    const sHeight = cropSize * scaleY;
+
+    // Draw the sub-rectangle of the source image onto the canvas
+    ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, size, size);
+
+    canvas.toBlob((blob) => {
+      onCrop(blob);
+    }, 'image/jpeg', 0.95);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+      <div className="bg-slate-900 border border-white/10 rounded-[32px] p-6 max-w-sm w-full flex flex-col items-center gap-6 shadow-2xl">
+        <h3 className="text-lg font-bold text-white">Crop Profile Photo</h3>
+        
+        {/* Workspace */}
+        <div 
+          ref={containerRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          className="relative w-80 h-80 bg-slate-950 rounded-2xl overflow-hidden cursor-move select-none touch-none"
+        >
+          {/* Renders image */}
+          {imageDims.width > 0 && (
+            <img
+              ref={imageRef}
+              src={imageSrc}
+              alt="To crop"
+              draggable={false}
+              className="absolute max-w-none origin-center"
+              style={{
+                width: `${imageDims.width}px`,
+                height: `${imageDims.height}px`,
+                left: `${(320 - imageDims.width) / 2}px`,
+                top: `${(320 - imageDims.height) / 2}px`,
+                transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+              }}
+            />
+          )}
+
+          {/* Circular mask overlay */}
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div className="w-[200px] h-[200px] rounded-full border-2 border-blue-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.75)]"></div>
+          </div>
+        </div>
+
+        {/* Zoom Slider */}
+        <div className="w-full space-y-2">
+          <div className="flex justify-between text-xs text-gray-400 font-medium px-1">
+            <span>Zoom</span>
+            <span>{Math.round(zoom * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="3"
+            step="0.05"
+            value={zoom}
+            onChange={(e) => setZoom(parseFloat(e.target.value))}
+            className="w-full accent-blue-500 bg-slate-800 h-1 rounded-lg appearance-none cursor-pointer"
+          />
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-3 w-full">
+          <button 
+            onClick={onClose}
+            className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-gray-300 text-sm font-semibold rounded-xl transition"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleSave}
+            className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-blue-500/20"
+          >
+            Crop & Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 const ProfilePage = () => {
   const { user, updateProfile, api, setUser } = useContext(AuthContext);
@@ -282,9 +463,8 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-
-
-
+  const [selectedImage, setSelectedImage] = useState(null);
+  const avatarInputRef = useRef();
   const [form, setForm] = useState({
     // account
     name:            user?.name || '',
@@ -308,7 +488,33 @@ const ProfilePage = () => {
     address:         user?.address || '',
   });
 
-  // Calculate if the form has unsaved changes
+  // Sync form state when user details are loaded/updated in the context
+  useEffect(() => {
+    if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setForm(prev => ({
+        ...prev,
+        name:            user.name || '',
+        avatar:          user.avatar || '',
+        phone:           user.phone || '',
+        educationLevel:  user.educationLevel || '',
+        schoolName10th:  user.schoolName10th || '',
+        percentage10th:  user.percentage10th || '',
+        schoolName12th:  user.schoolName12th || '',
+        percentage12th:  user.percentage12th || '',
+        collegeName:     user.collegeName || '',
+        degree:          user.degree || '',
+        cgpa:            user.cgpa || '',
+        aadharNumber:    user.aadharNumber || '',
+        panNumber:       user.panNumber || '',
+        dob:             user.dob || '',
+        address:         user.address || '',
+      }));
+    }
+  }, [user]);
+
+  // Calculate if the form has unsaved changes (commented out as it is currently unused to satisfy eslint)
+  /*
   const isDirty = useMemo(() => {
     return (
       form.name !== (user?.name || '') ||
@@ -330,6 +536,7 @@ const ProfilePage = () => {
       form.confirmPassword !== ''
     );
   }, [form, user]);
+  */
 
   const handleChange = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
@@ -363,6 +570,18 @@ const ProfilePage = () => {
     setUser(prev => ({ ...prev, resumeUrl: url }));
   };
 
+  const handleAvatarFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+
   // ── Teacher view (simple) ──
   if (user?.role === 'teacher') {
     return (
@@ -376,7 +595,7 @@ const ProfilePage = () => {
         <div className="glass rounded-[32px] p-8 space-y-5">
           <div className="flex items-center gap-5 pb-6 border-b border-white/10">
             <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-              {form.avatar ? <img src={form.avatar} alt={form.name} className="w-full h-full object-cover" /> : <User size={40} className="text-white" />}
+              {form.avatar ? <img src={getAvatarUrl(form.avatar)} alt={form.name} className="w-full h-full object-cover" /> : <User size={40} className="text-white" />}
             </div>
             <div>
               <h2 className="text-xl font-bold">{user.name}</h2>
@@ -420,7 +639,6 @@ const ProfilePage = () => {
     ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
     : '—';
 
-  const avatarInputRef = useRef();
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -455,7 +673,7 @@ const ProfilePage = () => {
           <div className="relative mt-4 mb-5 z-10">
             <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 border-4 border-white/10 shadow-2xl">
               {form.avatar
-                ? <img src={form.avatar} alt={form.name} className="w-full h-full object-cover" />
+                ? <img src={getAvatarUrl(form.avatar)} alt={form.name} className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center text-white"><User size={52} /></div>
               }
             </div>
@@ -467,16 +685,13 @@ const ProfilePage = () => {
             >
               <Camera size={15} />
             </button>
-            {/* Hidden URL input trigger — opens account settings tab for URL entry */}
+            {/* Hidden File input for avatar upload */}
             <input
               ref={avatarInputRef}
-              type="text"
+              type="file"
+              accept="image/*"
               className="hidden"
-              onChange={() => {}}
-              onFocus={() => {
-                setActiveTab(3);
-                avatarInputRef.current?.blur();
-              }}
+              onChange={handleAvatarFileChange}
             />
           </div>
 
@@ -598,6 +813,45 @@ const ProfilePage = () => {
         </motion.div>
 
       </div>
+      
+      {selectedImage && (
+        <CropModal
+          imageSrc={selectedImage}
+          onClose={() => {
+            setSelectedImage(null);
+            if (avatarInputRef.current) avatarInputRef.current.value = '';
+          }}
+          onCrop={async (croppedBlob) => {
+            setSelectedImage(null);
+            if (avatarInputRef.current) avatarInputRef.current.value = '';
+            
+            // Upload the cropped blob
+            setMessage({ type: '', text: '' });
+            setLoading(true);
+            const formData = new FormData();
+            formData.append('avatar', croppedBlob, 'avatar.jpg');
+
+            try {
+              const res = await api.post('/auth/upload-avatar', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+              });
+              setMessage({ type: 'success', text: 'Profile photo updated successfully!' });
+              const newAvatarUrl = res.data.avatarUrl;
+              setForm(prev => ({ ...prev, avatar: newAvatarUrl }));
+              setUser(prev => ({ ...prev, avatar: newAvatarUrl }));
+              setTimeout(() => setMessage({ type: '', text: '' }), 3500);
+            } catch (err) {
+              setMessage({
+                type: 'error',
+                text: err.response?.data?.message || 'Upload failed. Only image files up to 2MB are allowed.'
+              });
+              setTimeout(() => setMessage({ type: '', text: '' }), 3500);
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

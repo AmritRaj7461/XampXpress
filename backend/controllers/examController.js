@@ -43,16 +43,22 @@ const getExams = async (req, res) => {
         ]
       }).populate('createdBy', 'name').sort({ examDate: 1 });
       
+      // Get all results for this student to mark completed ones
+      const studentResults = await Result.find({ student: req.user._id });
+      const completedExamIds = new Set(studentResults.map(r => r.exam.toString()));
+
       // Exclude correct answers for students before they take it
       const sanitizedExams = exams.map(exam => {
-        const sanitizedQuestions = exam.questions.map(q => ({
+        const examObj = exam.toObject();
+        const sanitizedQuestions = examObj.questions.map(q => ({
           _id: q._id,
           questionText: q.questionText,
           options: q.options,
         }));
         return {
-          ...exam._doc,
+          ...examObj,
           questions: sanitizedQuestions,
+          completed: completedExamIds.has(examObj._id.toString()),
         };
       });
       res.json(sanitizedExams);
@@ -71,6 +77,11 @@ const getExamById = async (req, res) => {
     
     if (exam) {
       if (req.user.role === 'student') {
+        const existingResult = await Result.findOne({ student: req.user._id, exam: exam._id });
+        if (existingResult) {
+          return res.status(400).json({ message: 'You have already completed this exam and cannot re-attempt it.' });
+        }
+
         const sanitizedQuestions = exam.questions.map(q => ({
           _id: q._id,
           questionText: q.questionText,
@@ -99,6 +110,11 @@ const submitExam = async (req, res) => {
 
     if (!exam) {
       return res.status(404).json({ message: 'Exam not found' });
+    }
+
+    const existingResult = await Result.findOne({ student: req.user._id, exam: exam._id });
+    if (existingResult) {
+      return res.status(400).json({ message: 'You have already completed this exam and cannot re-submit it.' });
     }
 
     let score = 0;

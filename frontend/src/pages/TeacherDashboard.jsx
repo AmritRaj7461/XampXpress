@@ -3,6 +3,13 @@ import { AuthContext } from '../context/AuthContext';
 import { Users, FileText, Activity, User, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const getAvatarUrl = (avatar) => {
+  if (!avatar) return '';
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) return avatar;
+  return `${BACKEND}${avatar}`;
+};
+
 const TeacherDashboard = () => {
   const { user, api } = useContext(AuthContext);
   const [exams, setExams] = useState([]);
@@ -20,18 +27,18 @@ const TeacherDashboard = () => {
   }, [api]);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-indigo-500 shadow-lg border-2 border-white dark:border-[#161622] flex-shrink-0">
             {user?.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              <img src={getAvatarUrl(user.avatar)} alt={user.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-white"><User size={32} /></div>
             )}
           </div>
           <div>
-            <h1 className="text-3xl font-bold mb-1">Educator Dashboard</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mb-1">Educator Dashboard</h1>
             <p className="text-gray-500 dark:text-gray-400">Welcome back, {user?.name.split(' ')[0]}. Here is your class overview.</p>
           </div>
         </div>

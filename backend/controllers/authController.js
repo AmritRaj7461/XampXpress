@@ -10,6 +10,42 @@ const generateToken = (id) => {
   });
 };
 
+const formatUserResponse = (user, token) => {
+  const response = {
+    _id: user._id,
+    userId: user.userId,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    avatar: user.avatar,
+    totalTests: user.totalTests || 0,
+    averageScore: user.averageScore || 0,
+    accuracy: user.accuracy || 0,
+    streak: user.streak || 0,
+    badges: user.badges || [],
+    educationLevel: user.educationLevel || '',
+    schoolName10th: user.schoolName10th || '',
+    percentage10th: user.percentage10th || '',
+    schoolName12th: user.schoolName12th || '',
+    percentage12th: user.percentage12th || '',
+    collegeName: user.collegeName || '',
+    degree: user.degree || '',
+    cgpa: user.cgpa || '',
+    aadharNumber: user.aadharNumber || '',
+    panNumber: user.panNumber || '',
+    dob: user.dob || '',
+    address: user.address || '',
+    resumeUrl: user.resumeUrl || '',
+    phone: user.phone || '',
+    fairPoints: user.fairPoints || 0,
+    createdAt: user.createdAt,
+  };
+  if (token) {
+    response.token = token;
+  }
+  return response;
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -31,15 +67,7 @@ const registerUser = async (req, res) => {
     });
 
     if (user) {
-      res.status(201).json({
-        _id: user._id,
-        userId: user.userId,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        token: generateToken(user._id),
-      });
+      res.status(201).json(formatUserResponse(user, generateToken(user._id)));
     } else {
       res.status(400).json({ message: 'Invalid user data' });
     }
@@ -61,15 +89,7 @@ const loginUser = async (req, res) => {
     });
 
     if (user && (await user.matchPassword(password))) {
-      res.json({
-        _id: user._id,
-        userId: user.userId,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        token: generateToken(user._id),
-      });
+      res.json(formatUserResponse(user, generateToken(user._id)));
     } else {
       res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -106,35 +126,7 @@ const getUserProfile = async (req, res) => {
       await user.save();
     }
 
-    res.json({
-      _id: user._id,
-      userId: user.userId,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      totalTests: user.totalTests,
-      averageScore: user.averageScore,
-      accuracy: user.accuracy,
-      streak: user.streak,
-      badges: user.badges,
-      educationLevel: user.educationLevel,
-      schoolName10th: user.schoolName10th,
-      percentage10th: user.percentage10th,
-      schoolName12th: user.schoolName12th,
-      percentage12th: user.percentage12th,
-      collegeName: user.collegeName,
-      degree: user.degree,
-      cgpa: user.cgpa,
-      aadharNumber: user.aadharNumber,
-      panNumber: user.panNumber,
-      dob: user.dob,
-      address: user.address,
-      resumeUrl: user.resumeUrl,
-      phone: user.phone,
-      fairPoints: user.fairPoints,
-      createdAt: user.createdAt
-    });
+    res.json(formatUserResponse(user));
   } else {
     res.status(404).json({ message: 'User not found' });
   }
@@ -163,15 +155,7 @@ const googleAuth = async (req, res) => {
 
     if (user) {
       // Login existing user
-      res.json({
-        _id: user._id,
-        userId: user.userId,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        token: generateToken(user._id),
-      });
+      res.json(formatUserResponse(user, generateToken(user._id)));
     } else {
       // Register new user via Google
       // Since Google doesn't provide a password, we generate a random one
@@ -186,15 +170,7 @@ const googleAuth = async (req, res) => {
         avatar: picture || '',
       });
 
-      res.status(201).json({
-        _id: user._id,
-        userId: user.userId,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        token: generateToken(user._id),
-      });
+      res.status(201).json(formatUserResponse(user, generateToken(user._id)));
     }
   } catch (error) {
     console.error('Google auth error:', error);
@@ -240,29 +216,7 @@ const updateUserProfile = async (req, res) => {
 
     const updatedUser = await user.save();
 
-    res.json({
-      _id: updatedUser._id,
-      userId: updatedUser.userId,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      avatar: updatedUser.avatar,
-      educationLevel: updatedUser.educationLevel,
-      schoolName10th: updatedUser.schoolName10th,
-      percentage10th: updatedUser.percentage10th,
-      schoolName12th: updatedUser.schoolName12th,
-      percentage12th: updatedUser.percentage12th,
-      collegeName: updatedUser.collegeName,
-      degree: updatedUser.degree,
-      cgpa: updatedUser.cgpa,
-      aadharNumber: updatedUser.aadharNumber,
-      panNumber: updatedUser.panNumber,
-      dob: updatedUser.dob,
-      address: updatedUser.address,
-      resumeUrl: updatedUser.resumeUrl,
-      phone: updatedUser.phone,
-      token: generateToken(updatedUser._id),
-    });
+    res.json(formatUserResponse(updatedUser, generateToken(updatedUser._id)));
   } else {
     res.status(404).json({ message: 'User not found' });
   }
@@ -309,4 +263,34 @@ const uploadResume = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getUserProfile, googleAuth, updateUserProfile, getStudents, uploadResume };
+// @desc    Upload Avatar Image
+// @route   POST /api/auth/upload-avatar
+// @access  Private
+const uploadAvatar = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please upload an image file' });
+    }
+
+    // Generate local URL
+    const fileUrl = `/uploads/avatars/${req.file.filename}`;
+    user.avatar = fileUrl;
+    
+    const updatedUser = await user.save();
+
+    res.json({
+      message: 'Avatar uploaded successfully',
+      avatarUrl: fileUrl
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getUserProfile, googleAuth, updateUserProfile, getStudents, uploadResume, uploadAvatar };
+

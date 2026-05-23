@@ -12,7 +12,8 @@ import {
 const TeacherTestsCard = ({ tests = [], navigate }) => {
   const now = new Date();
 
-  const getStatus = (examDate) => {
+  const getStatus = (examDate, completed) => {
+    if (completed) return { label: 'Completed', color: 'text-gray-400 bg-gray-100 dark:bg-gray-800' };
     const d = new Date(examDate);
     const today = new Date(); today.setHours(0,0,0,0);
     const examDay = new Date(d); examDay.setHours(0,0,0,0);
@@ -41,7 +42,7 @@ const TeacherTestsCard = ({ tests = [], navigate }) => {
             <p className="text-sm">Check back later or ask your teacher.</p>
           </div>
         ) : tests.map((exam, i) => {
-          const status = getStatus(exam.examDate);
+          const status = getStatus(exam.examDate, exam.completed);
           const isLive = status.label === 'Live Today';
           return (
             <motion.div
@@ -66,16 +67,18 @@ const TeacherTestsCard = ({ tests = [], navigate }) => {
               </div>
               <button
                 onClick={() => navigate(`/student/exam/${exam._id}`)}
-                disabled={!isLive && status.label !== 'Upcoming'}
+                disabled={exam.completed || (!isLive && status.label !== 'Upcoming')}
                 className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition ${
-                  isLive
+                  exam.completed
+                    ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : isLive
                     ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-500/20'
                     : status.label === 'Upcoming'
                     ? 'bg-blue-600 hover:bg-blue-500 text-white'
                     : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                <Play size={16} /> {isLive ? 'Start Test Now' : status.label === 'Upcoming' ? 'Preview' : 'Test Ended'}
+                <Play size={16} /> {exam.completed ? 'Completed' : isLive ? 'Start Test Now' : status.label === 'Upcoming' ? 'Preview' : 'Test Ended'}
               </button>
             </motion.div>
           );
@@ -376,7 +379,7 @@ const StudentTestList = () => {
       <div className="flex flex-col lg:flex-row gap-6 items-stretch">
         {/* Left Section: Teacher Tests */}
         <div className="w-full lg:w-[450px] shrink-0 flex flex-col">
-          <TeacherTestsCard tests={teacherTests} loading={loading} />
+          <TeacherTestsCard tests={teacherTests} loading={loading} navigate={navigate} />
         </div>
 
         {/* Right Section: AI Test Wizard */}

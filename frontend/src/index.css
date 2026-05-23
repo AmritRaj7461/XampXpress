@@ -41,3 +41,20 @@
   display: none;                /* Chrome / Safari / Opera */
 }
 
+/* ── Global Cursors for Interactive Elements ── */
+button,
+a,
+select,
+[role="button"],
+input[type="button"],
+input[type="submit"] {
+  cursor: pointer;
+}
+
+button:disabled,
+a:disabled,
+select:disabled,
+[disabled],
+.cursor-not-allowed {
+  cursor: not-allowed !important;
+}

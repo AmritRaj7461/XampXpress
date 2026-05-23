@@ -88,15 +88,26 @@ userSchema.pre('save', async function () {
       (today.getMonth() + 1).toString().padStart(2, '0') +
       today.getDate().toString().padStart(2, '0');
 
-    // Count existing users created today with the same role
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const count = await this.constructor.countDocuments({
-      role: this.role,
-      createdAt: { $gte: startOfDay }
-    });
-
     const prefix = this.role === 'student' ? 'STU' : 'TCH';
-    const counterStr = (count + 1).toString().padStart(4, '0');
+    
+    // Find the highest existing userId for this prefix and date to prevent duplicates
+    const lastUser = await this.constructor.findOne({
+      userId: new RegExp(`^${prefix}${dateStr}`)
+    })
+      .sort({ userId: -1 })
+      .select('userId')
+      .exec();
+
+    let nextCounter = 1;
+    if (lastUser && lastUser.userId) {
+      const lastCounterStr = lastUser.userId.replace(`${prefix}${dateStr}`, '');
+      const lastCounter = parseInt(lastCounterStr, 10);
+      if (!isNaN(lastCounter)) {
+        nextCounter = lastCounter + 1;
+      }
+    }
+
+    const counterStr = nextCounter.toString().padStart(4, '0');
     this.userId = `${prefix}${dateStr}${counterStr}`;
   }
 
