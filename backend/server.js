@@ -16,7 +16,18 @@ const examRoutes = require('./routes/examRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/xampxpress')
+let dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/xampxpress';
+if (typeof dbUri === 'string') {
+  dbUri = dbUri.trim();
+  if (dbUri.startsWith('"') && dbUri.endsWith('"')) {
+    dbUri = dbUri.slice(1, -1);
+  } else if (dbUri.startsWith("'") && dbUri.endsWith("'")) {
+    dbUri = dbUri.slice(1, -1);
+  }
+  dbUri = dbUri.trim();
+}
+
+mongoose.connect(dbUri)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
 
