@@ -475,7 +475,10 @@ const ExamPage = () => {
     if (!hasStarted || !exam || isSubmitting || isPaused) return;
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) { clearInterval(timerRef.current); handleSubmit(false); return 0; }
+        if (prev <= 1) { 
+          clearInterval(timerRef.current); 
+          return 0; 
+        }
         return prev - 1;
       });
     }, 1000);

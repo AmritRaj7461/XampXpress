@@ -68,7 +68,11 @@ const ResultPage = () => {
           </div>
           <div>
             <h3 className="font-bold">Auto-Submitted due to Violations</h3>
-            <p className="text-sm opacity-80">This test was submitted automatically after 3 warnings for fullscreen exit or tab switching. 2 Fair Points have been deducted.</p>
+            <p className="text-sm opacity-80">
+              {result.violationLogs && result.violationLogs.length > 0 
+                ? `Test Terminated: ${result.violationLogs[result.violationLogs.length - 1].reason}` 
+                : "This test was submitted automatically due to anti-cheat violations. 2 Fair Points have been deducted."}
+            </p>
           </div>
         </motion.div>
       )}
