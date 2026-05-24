@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { AlertTriangle, Clock, Send, Maximize } from 'lucide-react';
+import { AlertTriangle, Clock, Send, Maximize, ShieldCheck, RefreshCw, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LiveMonitor from '../components/Proctoring/LiveMonitor';
 
@@ -22,17 +22,47 @@ const ExamPage = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [violated, setViolated] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [isProctoringActive, setIsProctoringActive] = useState(false);
   const [violationLogs, setViolationLogs] = useState([]);
   const [activeWarningMsg, setActiveWarningMsg] = useState('');
   const [isEnvironmentTampered, setIsEnvironmentTampered] = useState(false);
+  const [setupStream, setSetupStream] = useState(null);
+  const [setupError, setSetupError] = useState('');
+  const [setupGranted, setSetupGranted] = useState(false);
+  
   const timerRef = useRef(null);
-
   const isPausedRef = useRef(isPaused);
   const monitorRef = useRef(null);
+  const setupVideoRef = useRef(null);
 
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
+
+  // Request camera and microphone access on guidelines/setup screen
+  useEffect(() => {
+    if (hasStarted) return;
+    let localStream = null;
+    const requestSetupMedia = async () => {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setSetupStream(localStream);
+        setSetupGranted(true);
+        if (setupVideoRef.current) {
+          setupVideoRef.current.srcObject = localStream;
+        }
+      } catch (err) {
+        setSetupError('Camera and microphone access is required to take this exam. Please allow permissions in your browser.');
+        console.error("Setup camera access error:", err);
+      }
+    };
+    requestSetupMedia();
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [hasStarted]);
 
   // ── Early DevTools Check ───────────────────────────────────────────────
   useEffect(() => {
@@ -192,7 +222,7 @@ const ExamPage = () => {
   // ── Fullscreen Monitoring ──────────────────────────────────────────────
   // ── Fullscreen Monitoring & Continual Enforcer ─────────────────────────
   useEffect(() => {
-    if (!hasStarted) return;
+    if (!isProctoringActive) return;
     
     const handleFSChange = () => {
       if (!document.fullscreenElement) {
@@ -217,11 +247,11 @@ const ExamPage = () => {
       clearInterval(fsInterval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasStarted]);
+  }, [isProctoringActive]);
 
   // ── Tab switch detection & Anti-Cheat Measures ────────────────────────────────────────────────────
   useEffect(() => {
-    if (!hasStarted) return;
+    if (!isProctoringActive) return;
 
     // Extract pristine getters from a dynamic iframe to bypass any extension monkey-patching
     let originalHiddenGetter = null;
@@ -472,7 +502,7 @@ const ExamPage = () => {
       timingActive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasStarted]);
+  }, [isProctoringActive]);
 
   // ── Timer — pauses when isPaused ────────────────────────────────────────────
   useEffect(() => {
@@ -541,25 +571,98 @@ const ExamPage = () => {
   const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
   const handleStart = async () => {
+    if (setupStream) {
+      setupStream.getTracks().forEach(track => track.stop());
+    }
     try {
       await document.documentElement.requestFullscreen();
     } catch (err) {
       console.warn("Failed to start fullscreen test:", err);
     }
     setHasStarted(true);
+    setTimeout(() => {
+      setIsProctoringActive(true);
+    }, 2000);
   };
 
   if (!hasStarted) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-950 text-white flex-col gap-6 p-8 text-center">
-        <div className="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mb-4">
-          <Maximize size={40} />
+      <div className="h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col justify-center items-center p-6 overflow-y-auto transition-colors duration-300">
+        <div className="max-w-4xl w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col gap-8">
+          
+          {/* Top Header */}
+          <div className="text-center">
+            <div className="w-14 h-14 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-indigo-200 dark:border-indigo-500/25">
+              <ShieldCheck size={28} />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight">System & Guidelines Setup</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Please read the rules and verify your camera to unlock the exam.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Left: Guidelines */}
+            <div className="flex flex-col gap-4 text-left">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2">Exam Guidelines</h2>
+              <ul className="space-y-3.5 text-sm text-slate-600 dark:text-gray-400">
+                <li className="flex items-start gap-2.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0" />
+                  <span><strong>Fullscreen Enforcement:</strong> The test runs in fullscreen. Exiting fullscreen at any point triggers a violation.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0" />
+                  <span><strong>Tab & Window Tracking:</strong> Switching tabs or opening external applications is strictly prohibited.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0" />
+                  <span><strong>Webcam Verification:</strong> Our AI monitors your face gaze and checks for secondary devices (e.g., cell phones).</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0" />
+                  <span><strong>Violation Submission:</strong> Accumulating <strong>{MAX_WARNINGS} warnings</strong> will result in the immediate auto-submission of your test.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Right: Camera Feed Check */}
+            <div className="flex flex-col gap-4">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2 text-left">Webcam Verification</h2>
+              
+              <div className="aspect-video bg-slate-950 rounded-2xl overflow-hidden relative border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                {setupError ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-red-500 p-6 text-center">
+                    <AlertTriangle size={36} className="mb-2 animate-bounce" />
+                    <p className="text-xs font-semibold">{setupError}</p>
+                  </div>
+                ) : (
+                  <video ref={setupVideoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
+                )}
+
+                {setupGranted && (
+                  <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-xs text-green-400 border border-white/10 font-mono shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> CAMERA ACTIVE
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Action button */}
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-6 flex flex-col items-center gap-3">
+            <button
+              onClick={handleStart}
+              disabled={!setupGranted}
+              className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-300 disabled:to-slate-400 dark:disabled:from-slate-800 dark:disabled:to-slate-800 disabled:cursor-not-allowed text-white rounded-2xl font-extrabold text-base transition-all shadow-xl shadow-blue-500/10 hover:scale-[1.02] flex items-center justify-center gap-2"
+            >
+              <Maximize size={18} /> Enter Fullscreen & Start Exam
+            </button>
+            {!setupGranted && !setupError && (
+              <span className="text-xs text-amber-500 animate-pulse font-semibold flex items-center gap-1.5">
+                <RefreshCw size={12} className="animate-spin" /> Requesting media permissions in browser...
+              </span>
+            )}
+          </div>
+
         </div>
-        <h1 className="text-4xl font-bold">Ready to start {exam.title}?</h1>
-        <p className="text-gray-400 max-w-md">This test requires fullscreen mode. Do not switch tabs or exit fullscreen, or your test will be auto-submitted.</p>
-        <button onClick={handleStart} className="px-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 transition flex items-center gap-2 mt-4">
-          <Maximize size={20} /> Enter Fullscreen & Start
-        </button>
       </div>
     );
   }

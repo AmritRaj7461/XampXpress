@@ -180,7 +180,7 @@ Format:
 // @access  Private/Student
 const submitAITest = async (req, res) => {
   try {
-    const { subject, topics, questions, responses, violated = false } = req.body;
+    const { subject, topics, questions, responses, violated = false, violationLogs = [] } = req.body;
 
     if (!questions || !responses) {
       return res.status(400).json({ message: 'Missing test data.' });
@@ -215,6 +215,7 @@ const submitAITest = async (req, res) => {
       student: req.user._id,
       type: 'ai',
       violated,
+      violationLogs,
       aiTestData: {
         subject,
         topics: Array.isArray(topics) ? topics : [topics],
