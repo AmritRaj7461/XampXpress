@@ -38,6 +38,7 @@ function App() {
         <Router>
           <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             <Routes>
+            <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<AuthPage />} />
             <Route path="/register" element={<AuthPage />} />
             
@@ -67,8 +68,6 @@ function App() {
                 <>
                   <Navbar />
                   <Routes>
-                    <Route path="/" element={<RootRoute />} />
-                    
                     {/* Student Routes */}
                     <Route path="/student" element={
                       <ProtectedRoute allowedRoles={['student']}>
