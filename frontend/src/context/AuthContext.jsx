@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const res = await api.get('/auth/profile');
           setUser(res.data);
-        } catch (error) {
+        } catch {
           localStorage.removeItem('token');
         }
       }

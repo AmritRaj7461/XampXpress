@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Trash2, Save, Sparkles, FileText, Upload, X } from 'lucide-react';
+import { Plus, Trash2, Save, Sparkles, FileText, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const TeacherEditTest = () => {
@@ -53,7 +53,7 @@ const TeacherEditTest = () => {
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, api]);
 
   const handleAssigneeChange = (studentId) => {
     if (studentId === 'all') {

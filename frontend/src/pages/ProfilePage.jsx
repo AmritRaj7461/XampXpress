@@ -328,7 +328,9 @@ const CropModal = ({ imageSrc, onCrop, onClose }) => {
     setIsDragging(false);
     try {
       e.target.releasePointerCapture(e.pointerId);
-    } catch (err) {}
+    } catch {
+      // ignore errors
+    }
   };
 
   const handleSave = () => {

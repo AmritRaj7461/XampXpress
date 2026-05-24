@@ -10,8 +10,6 @@ import {
 
 // ─── Teacher Tests Card ───────────────────────────────────────────────────────
 const TeacherTestsCard = ({ tests = [], navigate }) => {
-  const now = new Date();
-
   const getStatus = (examDate, completed) => {
     if (completed) return { label: 'Completed', color: 'text-gray-400 bg-gray-100 dark:bg-gray-800' };
     const d = new Date(examDate);
@@ -356,14 +354,12 @@ const AITestCard = ({ api, navigate }) => {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const StudentTestList = () => {
   const { api, user } = useContext(AuthContext);
-  const [exams, setExams] = useState([]);
   const [teacherTests, setTeacherTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     api.get('/exams').then(res => {
-      setExams(res.data);
       setTeacherTests(res.data.filter(e => e.type === 'teacher'));
     }).catch(console.error).finally(() => setLoading(false));
   }, [api]);

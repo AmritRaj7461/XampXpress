@@ -41,6 +41,7 @@ const ExamPage = () => {
     // DevTools check running immediately to block pre-exam inspection
     const devToolsInterval = setInterval(() => {
       const start = performance.now();
+      // eslint-disable-next-line no-debugger
       debugger; // Halts execution when DevTools console/inspector is open
       const end = performance.now();
       
@@ -77,7 +78,7 @@ const ExamPage = () => {
     fetchExam();
   }, [id, api, navigate]);
 
-  const handleSubmit = async (isViolated = false, logsToSubmit = violationLogs) => {
+  async function handleSubmit(isViolated = false, logsToSubmit = violationLogs) {
     if (isSubmitting) return;
     setIsSubmitting(true);
     clearInterval(timerRef.current);
@@ -102,7 +103,7 @@ const ExamPage = () => {
     }
   };
 
-  const triggerViolation = (msg, forceSubmit = false) => {
+  function triggerViolation(msg, forceSubmit = false) {
     if (isPausedRef.current && !forceSubmit) return;
     setIsPaused(true);
     isPausedRef.current = true;
@@ -250,7 +251,9 @@ const ExamPage = () => {
       try {
         if (originalHiddenGetter && originalHiddenGetter.call(document)) return true;
         if (originalVisibilityGetter && originalVisibilityGetter.call(document) === 'hidden') return true;
-      } catch (err) {}
+      } catch {
+        // ignore
+      }
       return document.hidden || document.visibilityState === 'hidden';
     };
 
@@ -339,7 +342,7 @@ const ExamPage = () => {
           if (whitelistedDomains.some(domain => url.hostname.includes(domain))) {
             return true;
           }
-        } catch (e) {
+        } catch {
           // Fallback if URL parsing fails
         }
         return false;
@@ -424,6 +427,7 @@ const ExamPage = () => {
     // 5. DevTools Inspector Detection Loop (using debugger timing)
     const devToolsInterval = setInterval(() => {
       const start = performance.now();
+      // eslint-disable-next-line no-debugger
       debugger; // Halts execution when DevTools console/inspector is open
       const end = performance.now();
       if (end - start > 100) {
@@ -483,7 +487,7 @@ const ExamPage = () => {
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [hasStarted, exam, isSubmitting, isPaused]);
 
 

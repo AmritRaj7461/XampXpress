@@ -5,17 +5,14 @@ import { Mail, Lock, User, GraduationCap, Briefcase, ArrowRight, Sparkles, Hexag
 import { useGoogleLogin } from '@react-oauth/google';
 
 const AuthPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const { login, register: registerUser, googleLogin } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const [isLogin, setIsLogin] = useState(location.pathname !== '/register');
 
   useEffect(() => {
-    if (location.pathname === '/register') {
-      setIsLogin(false);
-    } else {
-      setIsLogin(true);
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsLogin(location.pathname !== '/register');
   }, [location.pathname]);
 
   const [loginData, setLoginData] = useState({ emailOrId: '', password: '' });

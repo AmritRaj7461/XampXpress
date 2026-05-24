@@ -18,7 +18,7 @@ const AIExamPage = () => {
   const [warnings, setWarnings] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [violationMsg, setViolationMsg] = useState('');
+
   const [violated, setViolated] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const examRef = useRef(null);
@@ -30,7 +30,7 @@ const AIExamPage = () => {
     
     const handleFSChange = () => {
       if (!document.fullscreenElement) {
-        triggerViolation('🔴 You exited fullscreen! The test is paused.');
+        triggerViolation();
         setIsPaused(true);
       }
     };
@@ -41,10 +41,11 @@ const AIExamPage = () => {
   // ── Tab visibility ──────────────────────────────────────────────────────────
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.hidden) triggerViolation('⚠️ Tab switch detected!');
+      if (document.hidden) triggerViolation();
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Timer ───────────────────────────────────────────────────────────────────
@@ -52,15 +53,26 @@ const AIExamPage = () => {
     if (!hasStarted || isPaused || isSubmitting) return;
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) { clearInterval(timerRef.current); handleSubmit(false); return 0; }
+        if (prev <= 1) { 
+          clearInterval(timerRef.current); 
+          return 0; 
+        }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
   }, [hasStarted, isPaused, isSubmitting]);
 
-  const triggerViolation = (msg) => {
-    setViolationMsg(msg);
+  // Handle timer auto-submit
+  useEffect(() => {
+    if (timeLeft <= 0 && hasStarted && !isSubmitting && !violated) {
+      handleSubmit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, hasStarted, isSubmitting, violated]);
+
+  function triggerViolation() {
+
     setWarnings(prev => {
       const next = prev + 1;
       if (next >= MAX_WARNINGS) {
@@ -71,7 +83,7 @@ const AIExamPage = () => {
     });
   };
 
-  const handleSubmit = async (isViolated = false) => {
+  async function handleSubmit(isViolated = false) {
     if (isSubmitting) return;
     setIsSubmitting(true);
     clearInterval(timerRef.current);
@@ -109,8 +121,10 @@ const AIExamPage = () => {
     try {
       await document.documentElement.requestFullscreen();
       setIsPaused(false);
-      setViolationMsg('');
-    } catch {}
+
+    } catch {
+      /* ignore */
+    }
   };
 
   if (!examData) {
@@ -132,7 +146,7 @@ const AIExamPage = () => {
     try {
       await document.documentElement.requestFullscreen();
       setHasStarted(true);
-    } catch (err) {
+    } catch {
       alert("Failed to enter fullscreen. Please try again.");
     }
   };

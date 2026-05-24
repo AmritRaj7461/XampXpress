@@ -11,17 +11,36 @@ const getAvatarUrl = (avatar) => {
   return `${BACKEND}${avatar}`;
 };
 
+const StatCard = ({ title, value, icon, color }) => (
+  <motion.div 
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    whileHover={{ y: -5 }}
+    transition={{ duration: 0.2 }}
+    className="glass p-6 rounded-[24px] flex items-center gap-5 shadow-sm border border-white/10 relative overflow-hidden"
+  >
+    <div className={`p-4 rounded-[16px] ${color} shadow-lg relative z-10`}>
+      {icon}
+    </div>
+    <div className="relative z-10">
+      <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold uppercase tracking-wider mb-1">{title}</p>
+      <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white">{value}</h3>
+    </div>
+    <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full ${color} opacity-10 blur-2xl`}></div>
+  </motion.div>
+);
+
 const StudentDashboard = () => {
   const { user, api } = useContext(AuthContext);
   const [exams, setExams] = useState([]);
-  const [stats, setStats] = useState({
+  const stats = {
     totalTests: user?.totalTests || 0,
     accuracy: user?.accuracy || 0,
     averageScore: user?.averageScore || 0,
     streak: user?.streak || 0,
     badges: user?.badges || [],
     fairPoints: user?.fairPoints ?? 0,
-  });
+  };
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -35,24 +54,7 @@ const StudentDashboard = () => {
     fetchExams();
   }, [api]);
 
-  const StatCard = ({ title, value, icon, color }) => (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ y: -5 }}
-      transition={{ duration: 0.2 }}
-      className="glass p-6 rounded-[24px] flex items-center gap-5 shadow-sm border border-white/10 relative overflow-hidden"
-    >
-      <div className={`p-4 rounded-[16px] ${color} shadow-lg relative z-10`}>
-        {icon}
-      </div>
-      <div className="relative z-10">
-        <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold uppercase tracking-wider mb-1">{title}</p>
-        <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white">{value}</h3>
-      </div>
-      <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full ${color} opacity-10 blur-2xl`}></div>
-    </motion.div>
-  );
+
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">

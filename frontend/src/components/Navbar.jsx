@@ -1,7 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { LogOut, User, Moon, Sun, Menu, X } from 'lucide-react';
+import { LogOut, User, Menu, Sun, Moon, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -28,6 +28,7 @@ const Navbar = () => {
 
   // Close mobile menu on route change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuOpen(false);
   }, [navigate]);
 
