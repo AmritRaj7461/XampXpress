@@ -20,12 +20,13 @@ import ExamPage from './pages/ExamPage';
 import AIExamPage from './pages/AIExamPage';
 import ResultPage from './pages/ResultPage';
 import MobileBlocker from './components/MobileBlocker';
+import LandingPage from './pages/LandingPage';
 
 const RootRoute = () => {
   const { user, loading } = useContext(AuthContext);
   
   if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <LandingPage />;
   
   return user.role === 'student' ? <Navigate to="/student" /> : <Navigate to="/teacher" />;
 };
