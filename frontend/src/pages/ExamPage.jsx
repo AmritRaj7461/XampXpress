@@ -437,12 +437,25 @@ const ExamPage = () => {
     });
 
     // 4. Time-Drift check to bypass Keep-Active visibility spoofing
-    let lastTick = Date.now();
+    let lastTick = null;
     let timingActive = true;
 
     const checkDrift = () => {
       if (!timingActive) return;
+      
+      if (isPausedRef.current) {
+        lastTick = null; // Reset while paused so we don't calculate pause duration on resume
+        requestAnimationFrame(checkDrift);
+        return;
+      }
+      
       const now = Date.now();
+      if (lastTick === null) {
+        lastTick = now;
+        requestAnimationFrame(checkDrift);
+        return;
+      }
+
       const delta = now - lastTick;
       lastTick = now;
 
@@ -582,7 +595,7 @@ const ExamPage = () => {
     setHasStarted(true);
     setTimeout(() => {
       setIsProctoringActive(true);
-    }, 2000);
+    }, 3000);
   };
 
   if (!hasStarted) {
