@@ -53,6 +53,11 @@ function App() {
                 <ExamPage />
               </ProtectedRoute>
             } />
+            <Route path="/student/ai-exam" element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <AIExamPage />
+              </ProtectedRoute>
+            } />
             <Route path="/student/result/:id" element={
               <ProtectedRoute allowedRoles={['student']}>
                 <>
@@ -78,7 +83,6 @@ function App() {
                       <Route path="tests" element={<StudentTestList />} />
                       <Route path="history" element={<StudentHistory />} />
                       <Route path="profile" element={<ProfilePage />} />
-                      <Route path="ai-exam" element={<AIExamPage />} />
                     </Route>
 
                     {/* Teacher Routes */}
