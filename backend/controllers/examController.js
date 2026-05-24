@@ -45,7 +45,11 @@ const getExams = async (req, res) => {
       
       // Get all results for this student to mark completed ones
       const studentResults = await Result.find({ student: req.user._id });
-      const completedExamIds = new Set(studentResults.map(r => r.exam.toString()));
+      const completedExamIds = new Set(
+        studentResults
+          .filter(r => r.exam)
+          .map(r => r.exam.toString())
+      );
 
       // Exclude correct answers for students before they take it
       const sanitizedExams = exams.map(exam => {
