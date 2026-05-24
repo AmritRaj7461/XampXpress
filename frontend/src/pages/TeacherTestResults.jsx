@@ -42,7 +42,7 @@ const TeacherTestResults = () => {
     >
       <div className="flex items-center justify-between">
         <div>
-          <Link to="/teacher/manage-tests" className="text-gray-400 hover:text-white flex items-center mb-2 transition-colors">
+          <Link to="/teacher/tests" className="text-gray-400 hover:text-white flex items-center mb-2 transition-colors">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back to Manage Tests
           </Link>
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
