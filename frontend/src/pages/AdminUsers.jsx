@@ -244,7 +244,7 @@ const AdminUsers = () => {
       {activeTab === 'instructors' && (
         <div className="space-y-6 z-10 relative">
           {/* Controls Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 glass p-4 rounded-3xl border border-gray-200 dark:border-slate-800/80 shadow-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 glass p-4 rounded-3xl border border-gray-200 dark:border-slate-800/80 shadow-lg relative z-20">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
@@ -507,7 +507,7 @@ const AdminUsers = () => {
       {activeTab === 'students' && (
         <div className="space-y-6 z-10 relative">
           {/* Controls Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 glass p-4 rounded-3xl border border-gray-200 dark:border-slate-800/80 shadow-lg font-medium">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 glass p-4 rounded-3xl border border-gray-200 dark:border-slate-800/80 shadow-lg font-medium relative z-20">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
