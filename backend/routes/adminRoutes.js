@@ -10,7 +10,9 @@ const {
   updateOrganizationStatus,
   runDiagnostics,
   pruneAIResults,
-  backupDatabase
+  backupDatabase,
+  getStudents,
+  updateStudentOrganization
 } = require('../controllers/adminController');
 
 // All routes require authentication and admin privileges
@@ -26,5 +28,7 @@ router.put('/organizations/:name/status', updateOrganizationStatus);
 router.post('/diagnose', runDiagnostics);
 router.post('/prune', pruneAIResults);
 router.get('/backup', backupDatabase);
+router.get('/students', getStudents);
+router.put('/students/:id/organization', updateStudentOrganization);
 
 module.exports = router;

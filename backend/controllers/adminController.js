@@ -258,6 +258,50 @@ const backupDatabase = async (req, res) => {
   }
 };
 
+// @desc    Get all students
+// @route   GET /api/admin/students
+// @access  Private/Admin
+const getStudents = async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' }).select('-password').sort({ createdAt: -1 });
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update student organization/school/college
+// @route   PUT /api/admin/students/:id/organization
+// @access  Private/Admin
+const updateStudentOrganization = async (req, res) => {
+  try {
+    const { organization, educationLevel, schoolName10th, schoolName12th, collegeName, degree, cgpa } = req.body;
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    if (user.role !== 'student') {
+      return res.status(400).json({ message: 'Only student organizations/schools can be updated' });
+    }
+
+    if (organization !== undefined) user.organization = organization;
+    if (educationLevel !== undefined) user.educationLevel = educationLevel;
+    if (schoolName10th !== undefined) user.schoolName10th = schoolName10th;
+    if (schoolName12th !== undefined) user.schoolName12th = schoolName12th;
+    if (collegeName !== undefined) user.collegeName = collegeName;
+    if (degree !== undefined) user.degree = degree;
+    if (cgpa !== undefined) user.cgpa = cgpa;
+
+    await user.save();
+
+    res.json({ message: 'Student details updated successfully', user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAdminStats,
   getTeachers,
@@ -267,5 +311,7 @@ module.exports = {
   updateOrganizationStatus,
   runDiagnostics,
   pruneAIResults,
-  backupDatabase
+  backupDatabase,
+  getStudents,
+  updateStudentOrganization
 };

@@ -6,7 +6,8 @@ import {
   User, Lock, Phone, Mail, Camera, Save,
   Upload, Eye, BookOpen, School, BadgeCheck,
   Calendar, MapPin, CreditCard, IdCard, AlertTriangle, Edit2,
-  Terminal, Play, CheckCircle2, Database, ShieldAlert, ShieldCheck
+  Terminal, Play, CheckCircle2, Database, ShieldAlert, ShieldCheck,
+  Building2
 } from 'lucide-react';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
