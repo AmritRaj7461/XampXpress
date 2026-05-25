@@ -244,7 +244,7 @@ const AdminUsers = () => {
       {activeTab === 'instructors' && (
         <div className="space-y-6 z-10 relative">
           {/* Controls Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-gray-950 p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 glass p-4 rounded-3xl border border-gray-200 dark:border-slate-800/80 shadow-lg">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
@@ -253,7 +253,7 @@ const AdminUsers = () => {
                 placeholder="Search by name, email, or ID..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm"
+                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-gray-50/50 dark:bg-slate-950/40 border border-gray-200 dark:border-slate-800/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm text-gray-900 dark:text-white font-medium"
               />
             </div>
 
@@ -261,7 +261,7 @@ const AdminUsers = () => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-full pl-11 pr-10 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-between cursor-pointer"
+                className="w-full pl-11 pr-10 py-3 rounded-2xl bg-gray-50/50 dark:bg-slate-950/40 border border-gray-200 dark:border-slate-800/80 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-between cursor-pointer text-gray-700 dark:text-gray-300"
               >
                 <span className="flex items-center gap-2">
                   <Building2 size={18} className="text-gray-400 absolute left-4" />
@@ -273,7 +273,7 @@ const AdminUsers = () => {
               </button>
 
               {isDropdownOpen && (
-                <div className="absolute left-0 right-0 mt-2 z-50 rounded-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-2xl p-2 max-h-60 overflow-y-auto space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="absolute left-0 right-0 mt-2 z-50 rounded-2xl glass p-2 max-h-60 overflow-y-auto space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150 dark:bg-slate-900/95 border border-gray-200 dark:border-slate-800/80 shadow-2xl scrollbar-thin">
                   {organizations.map(org => (
                     <button
                       key={org}
@@ -507,7 +507,7 @@ const AdminUsers = () => {
       {activeTab === 'students' && (
         <div className="space-y-6 z-10 relative">
           {/* Controls Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-gray-950 p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-lg font-medium">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 glass p-4 rounded-3xl border border-gray-200 dark:border-slate-800/80 shadow-lg font-medium">
             {/* Search Input */}
             <div className="relative flex-1">
               <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
@@ -516,7 +516,7 @@ const AdminUsers = () => {
                 placeholder="Search students by name, email, or ID..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm"
+                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-gray-50/50 dark:bg-slate-950/40 border border-gray-200 dark:border-slate-800/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm text-gray-900 dark:text-white font-medium"
               />
             </div>
 
@@ -524,7 +524,7 @@ const AdminUsers = () => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-full pl-11 pr-10 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-between cursor-pointer"
+                className="w-full pl-11 pr-10 py-3 rounded-2xl bg-gray-50/50 dark:bg-slate-950/40 border border-gray-200 dark:border-slate-800/80 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-between cursor-pointer text-gray-700 dark:text-gray-300"
               >
                 <span className="flex items-center gap-2">
                   <Building2 size={18} className="text-gray-400 absolute left-4" />
@@ -536,7 +536,7 @@ const AdminUsers = () => {
               </button>
 
               {isDropdownOpen && (
-                <div className="absolute left-0 right-0 mt-2 z-50 rounded-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-2xl p-2 max-h-60 overflow-y-auto space-y-0.5">
+                <div className="absolute left-0 right-0 mt-2 z-50 rounded-2xl glass p-2 max-h-60 overflow-y-auto space-y-0.5 dark:bg-slate-900/95 border border-gray-200 dark:border-slate-800/80 shadow-2xl scrollbar-thin">
                   {organizations.map(org => (
                     <button
                       key={org}
@@ -681,11 +681,11 @@ const AdminUsers = () => {
                     <select
                       value={studentEduLevel}
                       onChange={e => setStudentEduLevel(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm text-gray-900 dark:text-white font-medium"
+                      className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm text-gray-900 dark:text-white font-medium"
                     >
-                      <option value="" className="bg-white dark:bg-gray-950 text-gray-950 dark:text-white">None (Not Specified)</option>
-                      <option value="school" className="bg-white dark:bg-gray-950 text-gray-950 dark:text-white">School (10th/12th)</option>
-                      <option value="college" className="bg-white dark:bg-gray-955 text-gray-955 dark:text-white">College / University</option>
+                      <option value="" className="bg-white dark:bg-slate-900 text-gray-900 dark:text-white">None (Not Specified)</option>
+                      <option value="school" className="bg-white dark:bg-slate-900 text-gray-900 dark:text-white">School (10th/12th)</option>
+                      <option value="college" className="bg-white dark:bg-slate-900 text-gray-900 dark:text-white">College / University</option>
                     </select>
                   </div>
 

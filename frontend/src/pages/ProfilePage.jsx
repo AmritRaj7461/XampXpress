@@ -654,10 +654,9 @@ const ProfilePage = () => {
   };
 
 
-  // ── Admin view (NEW premium control room layout) ──
   if (user?.role === 'admin') {
     return (
-      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 relative overflow-hidden">
+      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 relative">
         {/* Decorative Blobs */}
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
