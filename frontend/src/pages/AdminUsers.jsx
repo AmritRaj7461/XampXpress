@@ -1,6 +1,6 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Search, Building2, UserCheck, ShieldAlert, Check, X, Edit, ArrowLeft } from 'lucide-react';
+import { Search, Building2, UserCheck, ShieldAlert, Check, X, Edit, ArrowLeft, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const AdminUsers = () => {
@@ -21,6 +21,21 @@ const AdminUsers = () => {
   const [confirmPromote, setConfirmPromote] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Custom dropdown state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -125,7 +140,7 @@ const AdminUsers = () => {
       )}
 
       {/* Controls Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-gray-950 p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-gray-950 p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-lg">
         {/* Search Input */}
         <div className="relative flex-1">
           <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
@@ -138,20 +153,41 @@ const AdminUsers = () => {
           />
         </div>
 
-        {/* Organization Filter */}
-        <div className="relative">
-          <Building2 size={18} className="absolute left-4 top-3.5 text-gray-400" />
-          <select
-            value={orgFilter}
-            onChange={e => setOrgFilter(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm appearance-none"
+        {/* Organization Filter (Custom Themed Dropdown) */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full pl-11 pr-10 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-between cursor-pointer"
           >
-            {organizations.map(org => (
-              <option key={org} value={org}>
-                Organization: {org}
-              </option>
-            ))}
-          </select>
+            <span className="flex items-center gap-2">
+              <Building2 size={18} className="text-gray-400 absolute left-4" />
+              <span className="text-gray-700 dark:text-gray-300">
+                Organization: <strong className="text-indigo-600 dark:text-indigo-400">{orgFilter}</strong>
+              </span>
+            </span>
+            <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isDropdownOpen && (
+            <div className="absolute left-0 right-0 mt-2 z-50 rounded-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-2xl p-2 max-h-60 overflow-y-auto space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+              {organizations.map(org => (
+                <button
+                  key={org}
+                  onClick={() => {
+                    setOrgFilter(org);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer ${
+                    orgFilter === org
+                      ? 'bg-indigo-500/10 text-indigo-500 font-bold'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'
+                  }`}
+                >
+                  {org}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

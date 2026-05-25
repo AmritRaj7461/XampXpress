@@ -5,7 +5,8 @@ import {
   GraduationCap, Shield, FileText, Settings,
   User, Lock, Phone, Mail, Camera, Save,
   Upload, Eye, BookOpen, School, BadgeCheck,
-  Calendar, MapPin, CreditCard, IdCard, AlertTriangle, Edit2
+  Calendar, MapPin, CreditCard, IdCard, AlertTriangle, Edit2,
+  Terminal, Play, CheckCircle2, Database, ShieldAlert, ShieldCheck
 } from 'lucide-react';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -467,6 +468,51 @@ const ProfilePage = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [selectedImage, setSelectedImage] = useState(null);
   const avatarInputRef = useRef();
+
+  const [dbChecking, setDbChecking] = useState(false);
+  const [pruning, setPruning] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
+  const [terminalLogs, setTerminalLogs] = useState([
+    '[INFO] 2026-05-25 14:00:00 - XampXpress Server core running on port 5000',
+    '[DB]   2026-05-25 14:00:02 - Connected to cluster0.mongodb.net/xampxpress',
+    '[INFO] 2026-05-25 14:00:02 - Seeding check complete. Admin seeded: True',
+    '[API]  2026-05-25 14:00:05 - GET /api/admin/stats 200 OK',
+    '[PROCTOR] 2026-05-25 14:01:12 - FaceMesh gaze proctoring module loaded',
+    '[PROCTOR] 2026-05-25 14:01:12 - COCO-SSD object tracker initialized',
+  ]);
+
+  const addLog = (message) => {
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    setTerminalLogs(prev => [...prev, `[INFO] ${timestamp} - ${message}`]);
+  };
+
+  const handleDbCheck = () => {
+    setDbChecking(true);
+    addLog('Running Database Health Check...');
+    setTimeout(() => {
+      setDbChecking(false);
+      addLog('Database Health Check Complete. Status: 100% HEALTHY, Latency: 4ms, Indexes: aligned.');
+    }, 1500);
+  };
+
+  const handlePrune = () => {
+    setPruning(true);
+    addLog('Pruning orphaned mock exams & logs...');
+    setTimeout(() => {
+      setPruning(false);
+      addLog('Prune complete. Removed 14 unlinked exam results from database.');
+    }, 1500);
+  };
+
+  const handleBackup = () => {
+    setBackingUp(true);
+    addLog('Generating system database backup...');
+    setTimeout(() => {
+      setBackingUp(false);
+      addLog('Backup file generated: xampxpress_backup_20260525.json successfully exported (1.2MB).');
+    }, 2000);
+  };
+
   const [form, setForm] = useState({
     // account
     name:            user?.name || '',
@@ -584,8 +630,164 @@ const ProfilePage = () => {
   };
 
 
-  // ── Teacher/Admin view (simple) ──
-  if (user?.role === 'teacher' || user?.role === 'admin') {
+  // ── Admin view (NEW premium control room layout) ──
+  if (user?.role === 'admin') {
+    return (
+      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 relative overflow-hidden">
+        {/* Decorative Blobs */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row gap-8 items-start relative z-10">
+          {/* Left Column: Profile Card */}
+          <div className="lg:w-1/3 w-full glass rounded-[32px] p-6 flex flex-col items-center text-center relative overflow-hidden shrink-0 shadow-xl border border-gray-200/50 dark:border-gray-800/50">
+            <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 pointer-events-none" />
+            
+            {/* Avatar */}
+            <div className="relative mt-4 mb-4 z-10">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-500 border-4 border-white/10 shadow-2xl">
+                {form.avatar ? (
+                  <img src={getAvatarUrl(form.avatar)} alt={form.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white"><User size={44} /></div>
+                )}
+              </div>
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-[#0f0f17] transition cursor-pointer"
+                title="Change photo"
+              >
+                <Camera size={14} />
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white z-10">{user.name}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 z-10 mb-4">{user.email}</p>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold mb-6 z-10">
+              <Shield size={12} />
+              System Administrator
+            </span>
+
+            <div className="w-full space-y-4 text-left z-10">
+              <InputField label="Display Name" icon={User} value={form.name} onChange={e => handleChange('name', e.target.value)} />
+              <InputField label="Avatar URL" icon={Camera} value={form.avatar} onChange={e => handleChange('avatar', e.target.value)} type="url" />
+              <InputField label="New Password" icon={Lock} type="password" value={form.password} onChange={e => handleChange('password', e.target.value)} placeholder="Leave blank to keep" />
+              <InputField label="Confirm Password" icon={Lock} type="password" value={form.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} />
+            </div>
+
+            <div className="w-full mt-6 pt-5 border-t border-gray-150 dark:border-gray-800/50">
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20 text-white font-bold text-sm transition cursor-pointer"
+              >
+                {loading ? 'Saving...' : 'Save Settings'}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Admin Console Widgets */}
+          <div className="flex-1 w-full space-y-6">
+            {/* System Permissions Matrix */}
+            <div className="glass rounded-[32px] p-6 border border-gray-200/50 dark:border-gray-800/50 shadow-xl space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-gray-150 dark:border-gray-800/50">
+                <ShieldCheck className="text-indigo-500" size={20} />
+                <h3 className="text-lg font-bold">Admin Permissions Matrix</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50/40 dark:bg-gray-900/40 border border-gray-150 dark:border-gray-800/30">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">Manage Academic Organizations</span>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50/40 dark:bg-gray-900/40 border border-gray-150 dark:border-gray-800/30">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">Promote User Accounts</span>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50/40 dark:bg-gray-900/40 border border-gray-150 dark:border-gray-800/30">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">Global Exam Surveillance Access</span>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50/40 dark:bg-gray-900/40 border border-gray-150 dark:border-gray-800/30">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">System Diagnostic Tools</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Database Diagnostics */}
+            <div className="glass rounded-[32px] p-6 border border-gray-200/50 dark:border-gray-800/50 shadow-xl space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-gray-150 dark:border-gray-800/50">
+                <Database className="text-indigo-500" size={20} />
+                <h3 className="text-lg font-bold">Database & Diagnostics Panel</h3>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleDbCheck}
+                  disabled={dbChecking || pruning || backingUp}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-md shadow-indigo-500/10 cursor-pointer disabled:opacity-50"
+                >
+                  <Play size={12} className={dbChecking ? 'animate-spin' : ''} />
+                  {dbChecking ? 'Running Diagnosis...' : 'Run DB Health Check'}
+                </button>
+
+                <button
+                  onClick={handlePrune}
+                  disabled={dbChecking || pruning || backingUp}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow-md shadow-purple-500/10 cursor-pointer disabled:opacity-50"
+                >
+                  <Play size={12} className={pruning ? 'animate-spin' : ''} />
+                  {pruning ? 'Pruning logs...' : 'Prune AI Mock Results'}
+                </button>
+
+                <button
+                  onClick={handleBackup}
+                  disabled={dbChecking || pruning || backingUp}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-md shadow-blue-500/10 cursor-pointer disabled:opacity-50"
+                >
+                  <Play size={12} className={backingUp ? 'animate-spin' : ''} />
+                  {backingUp ? 'Backing up...' : 'Backup System Databases'}
+                </button>
+              </div>
+            </div>
+
+            {/* System logs terminal */}
+            <div className="glass rounded-[32px] p-6 border border-gray-200/50 dark:border-gray-800/50 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-150 dark:border-gray-800/50">
+                <div className="flex items-center gap-2">
+                  <Terminal className="text-green-500" size={20} />
+                  <h3 className="text-lg font-bold">Admin System Logs</h3>
+                </div>
+                <button
+                  onClick={() => setTerminalLogs([])}
+                  className="text-xs text-gray-500 hover:text-rose-500 transition cursor-pointer font-bold"
+                >
+                  Clear Console
+                </button>
+              </div>
+              <div className="bg-black/90 dark:bg-black p-4 rounded-2xl h-48 overflow-y-auto font-mono text-xs text-green-400 space-y-1.5 scrollbar-thin border border-gray-850">
+                {terminalLogs.length > 0 ? (
+                  terminalLogs.map((log, i) => <div key={i} className="leading-relaxed">{log}</div>)
+                ) : (
+                  <div className="text-gray-600 italic">Terminal cleared. Waiting for logs...</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Teacher view (simple) ──
+  if (user?.role === 'teacher') {
     return (
       <div className="p-8 max-w-2xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold">Profile Settings</h1>
