@@ -584,8 +584,8 @@ const ProfilePage = () => {
   };
 
 
-  // ── Teacher view (simple) ──
-  if (user?.role === 'teacher') {
+  // ── Teacher/Admin view (simple) ──
+  if (user?.role === 'teacher' || user?.role === 'admin') {
     return (
       <div className="p-8 max-w-2xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold">Profile Settings</h1>

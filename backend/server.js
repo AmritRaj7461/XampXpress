@@ -15,6 +15,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const authRoutes = require('./routes/authRoutes');
 const examRoutes = require('./routes/examRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // MongoDB Connection
 let dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/xampxpress';
@@ -28,14 +29,38 @@ if (typeof dbUri === 'string') {
   dbUri = dbUri.trim();
 }
 
+const seedFixedAdmin = async () => {
+  try {
+    const User = require('./models/User');
+    const adminExists = await User.findOne({ email: 'admin@xampxpress.com' });
+    if (!adminExists) {
+      console.log('Seeding fixed admin user...');
+      await User.create({
+        name: 'System Admin',
+        email: 'admin@xampxpress.com',
+        password: 'admin123',
+        role: 'admin',
+        organization: 'System Management'
+      });
+      console.log('Fixed admin user seeded successfully: admin@xampxpress.com / admin123');
+    }
+  } catch (error) {
+    console.error('Error seeding fixed admin:', error.message);
+  }
+};
+
 mongoose.connect(dbUri)
-  .then(() => console.log('MongoDB connected'))
+  .then(() => {
+    console.log('MongoDB connected');
+    seedFixedAdmin();
+  })
   .catch(err => console.log(err));
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Get results for a user
 app.get('/api/results', require('./middleware/authMiddleware').protect, async (req, res) => {

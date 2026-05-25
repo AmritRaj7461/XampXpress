@@ -54,7 +54,18 @@ const Navbar = () => {
     { name: 'Manage Tests', path: '/teacher/tests' },
   ];
 
-  const links = user?.role === 'student' ? studentLinks : user?.role === 'teacher' ? teacherLinks : [];
+  const adminLinks = [
+    { name: 'Dashboard', path: '/admin' },
+    { name: 'Manage Users', path: '/admin/users' },
+  ];
+
+  const links = user?.role === 'student' 
+    ? studentLinks 
+    : user?.role === 'teacher' 
+    ? teacherLinks 
+    : user?.role === 'admin'
+    ? adminLinks
+    : [];
 
   return (
     <nav className="sticky top-0 z-50 bg-white/70 dark:bg-gray-950/70 backdrop-blur-2xl border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors duration-300">
@@ -115,7 +126,7 @@ const Navbar = () => {
                 <div className="absolute right-0 top-full mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-right scale-95 group-hover:scale-100 z-50">
                   <div className="bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-2 flex flex-col gap-1">
                     <Link 
-                      to={user.role === 'student' ? '/student/profile' : '/teacher/profile'}
+                      to={user.role === 'student' ? '/student/profile' : user.role === 'teacher' ? '/teacher/profile' : '/admin/profile'}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                     >
                       <User size={18} className="text-blue-500" />
@@ -190,7 +201,7 @@ const Navbar = () => {
                 <NavLink
                   key={link.path}
                   to={link.path}
-                  end={link.path === '/student' || link.path === '/teacher'}
+                  end={link.path === '/student' || link.path === '/teacher' || link.path === '/admin'}
                   onClick={() => setMenuOpen(false)}
                   className={({ isActive }) =>
                     `block px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
@@ -208,7 +219,7 @@ const Navbar = () => {
 
               {/* Profile Link */}
               <Link
-                to={user.role === 'student' ? '/student/profile' : '/teacher/profile'}
+                to={user.role === 'student' ? '/student/profile' : user.role === 'teacher' ? '/teacher/profile' : '/admin/profile'}
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
               >

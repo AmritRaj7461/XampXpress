@@ -21,6 +21,8 @@ import AIExamPage from './pages/AIExamPage';
 import ResultPage from './pages/ResultPage';
 import MobileBlocker from './components/MobileBlocker';
 import LandingPage from './pages/LandingPage';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
 
 const RootRoute = () => {
   const { user, loading } = useContext(AuthContext);
@@ -28,6 +30,7 @@ const RootRoute = () => {
   if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
   if (!user) return <LandingPage />;
   
+  if (user.role === 'admin') return <Navigate to="/admin" />;
   return user.role === 'student' ? <Navigate to="/student" /> : <Navigate to="/teacher" />;
 };
 
@@ -97,6 +100,17 @@ function App() {
                       <Route path="tests" element={<TeacherManageTests />} />
                       <Route path="test-results/:id" element={<TeacherTestResults />} />
                       <Route path="settings" element={<TeacherSettings />} />
+                      <Route path="profile" element={<ProfilePage />} />
+                    </Route>
+
+                    {/* Admin Routes */}
+                    <Route path="/admin" element={
+                      <ProtectedRoute allowedRoles={['admin']}>
+                        <MainLayout />
+                      </ProtectedRoute>
+                    }>
+                      <Route index element={<AdminDashboard />} />
+                      <Route path="users" element={<AdminUsers />} />
                       <Route path="profile" element={<ProfilePage />} />
                     </Route>
 

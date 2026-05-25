@@ -21,8 +21,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['student', 'teacher'],
+    enum: ['student', 'teacher', 'admin'],
     required: true,
+  },
+  organization: {
+    type: String,
+    default: '',
   },
   avatar: {
     type: String,
@@ -88,7 +92,9 @@ userSchema.pre('save', async function () {
       (today.getMonth() + 1).toString().padStart(2, '0') +
       today.getDate().toString().padStart(2, '0');
 
-    const prefix = this.role === 'student' ? 'STU' : 'TCH';
+    let prefix = 'STU';
+    if (this.role === 'teacher') prefix = 'TCH';
+    else if (this.role === 'admin') prefix = 'ADM';
     
     // Find the highest existing userId for this prefix and date to prevent duplicates
     const lastUser = await this.constructor.findOne({
