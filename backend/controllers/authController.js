@@ -38,6 +38,7 @@ const formatUserResponse = (user, token) => {
     resumeUrl: user.resumeUrl || '',
     phone: user.phone || '',
     fairPoints: user.fairPoints || 0,
+    organization: user.organization || '',
     createdAt: user.createdAt,
   };
   if (token) {
@@ -213,6 +214,7 @@ const updateUserProfile = async (req, res) => {
     
     // Account Info
     if (req.body.phone !== undefined) user.phone = req.body.phone;
+    if (req.body.organization !== undefined) user.organization = req.body.organization;
 
     const updatedUser = await user.save();
 

@@ -486,31 +486,52 @@ const ProfilePage = () => {
     setTerminalLogs(prev => [...prev, `[INFO] ${timestamp} - ${message}`]);
   };
 
-  const handleDbCheck = () => {
+  const handleDbCheck = async () => {
     setDbChecking(true);
     addLog('Running Database Health Check...');
-    setTimeout(() => {
+    try {
+      const res = await api.post('/admin/diagnose');
+      const data = res.data;
+      addLog(`Status: healthy, collections: ${data.collections}, objects: ${data.objects}, storageSize: ${(data.storageSize / (1024*1024)).toFixed(2)}MB, indexSize: ${(data.indexSize / (1024*1024)).toFixed(2)}MB`);
+    } catch (err) {
+      addLog(`Error running diagnosis: ${err.response?.data?.message || err.message}`);
+    } finally {
       setDbChecking(false);
-      addLog('Database Health Check Complete. Status: 100% HEALTHY, Latency: 4ms, Indexes: aligned.');
-    }, 1500);
+    }
   };
 
-  const handlePrune = () => {
+  const handlePrune = async () => {
     setPruning(true);
-    addLog('Pruning orphaned mock exams & logs...');
-    setTimeout(() => {
+    addLog('Pruning AI mock test records...');
+    try {
+      const res = await api.post('/admin/prune');
+      addLog(res.data.message);
+    } catch (err) {
+      addLog(`Error pruning results: ${err.response?.data?.message || err.message}`);
+    } finally {
       setPruning(false);
-      addLog('Prune complete. Removed 14 unlinked exam results from database.');
-    }, 1500);
+    }
   };
 
-  const handleBackup = () => {
+  const handleBackup = async () => {
     setBackingUp(true);
     addLog('Generating system database backup...');
-    setTimeout(() => {
+    try {
+      const res = await api.get('/admin/backup', { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `xampxpress_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      addLog('Backup complete. File download triggered.');
+    } catch (err) {
+      addLog(`Error generating backup: ${err.response?.data?.message || err.message}`);
+    } finally {
       setBackingUp(false);
-      addLog('Backup file generated: xampxpress_backup_20260525.json successfully exported (1.2MB).');
-    }, 2000);
+    }
   };
 
   const [form, setForm] = useState({
@@ -520,6 +541,7 @@ const ProfilePage = () => {
     phone:           user?.phone || '',
     password:        '',
     confirmPassword: '',
+    organization:    user?.organization || '',
     // academic
     educationLevel:  user?.educationLevel || '',
     schoolName10th:  user?.schoolName10th || '',
@@ -545,6 +567,7 @@ const ProfilePage = () => {
         name:            user.name || '',
         avatar:          user.avatar || '',
         phone:           user.phone || '',
+        organization:    user.organization || '',
         educationLevel:  user.educationLevel || '',
         schoolName10th:  user.schoolName10th || '',
         percentage10th:  user.percentage10th || '',
@@ -679,6 +702,7 @@ const ProfilePage = () => {
             <div className="w-full space-y-4 text-left z-10">
               <InputField label="Display Name" icon={User} value={form.name} onChange={e => handleChange('name', e.target.value)} />
               <InputField label="Avatar URL" icon={Camera} value={form.avatar} onChange={e => handleChange('avatar', e.target.value)} type="url" />
+              <InputField label="Organization Name" icon={Building2} value={form.organization} onChange={e => handleChange('organization', e.target.value)} />
               <InputField label="New Password" icon={Lock} type="password" value={form.password} onChange={e => handleChange('password', e.target.value)} placeholder="Leave blank to keep" />
               <InputField label="Confirm Password" icon={Lock} type="password" value={form.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} />
             </div>
@@ -809,6 +833,7 @@ const ProfilePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField label="Display Name" icon={User} value={form.name} onChange={e => handleChange('name', e.target.value)} />
             <InputField label="Avatar URL" icon={Camera} value={form.avatar} onChange={e => handleChange('avatar', e.target.value)} type="url" />
+            <InputField label="Organization Name" icon={Building2} value={form.organization} onChange={e => handleChange('organization', e.target.value)} />
             <InputField label="New Password" icon={Lock} type="password" value={form.password} onChange={e => handleChange('password', e.target.value)} placeholder="Leave blank to keep" />
             <InputField label="Confirm Password" icon={Lock} type="password" value={form.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} />
           </div>

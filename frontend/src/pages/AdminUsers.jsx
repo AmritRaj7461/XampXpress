@@ -1,13 +1,17 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Search, Building2, UserCheck, ShieldAlert, Check, X, Edit, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Search, Building2, UserCheck, ShieldAlert, Check, X, Edit, ArrowLeft, ChevronDown, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const AdminUsers = () => {
   const { api } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
+  const [organizationsList, setOrganizationsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState('instructors'); // 'instructors' | 'organizations'
   
   // Search & Filter state
   const [search, setSearch] = useState('');
@@ -37,19 +41,24 @@ const AdminUsers = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/admin/teachers');
-      setUsers(res.data);
+      const [usersRes, orgsRes] = await Promise.all([
+        api.get('/admin/teachers'),
+        api.get('/admin/organizations')
+      ]);
+      setUsers(usersRes.data);
+      setOrganizationsList(orgsRes.data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch users');
+      setError(err.response?.data?.message || 'Failed to fetch database information');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
 
@@ -60,7 +69,7 @@ const AdminUsers = () => {
       await api.put(`/admin/teachers/${editingUser._id}/organization`, { organization: orgInput.trim() });
       setSuccessMsg(`Successfully updated organization for ${editingUser.name}`);
       setEditingUser(null);
-      fetchUsers();
+      fetchData();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update organization');
     } finally {
@@ -76,9 +85,24 @@ const AdminUsers = () => {
       await api.put(`/admin/teachers/${confirmPromote._id}/promote`);
       setSuccessMsg(`Successfully promoted ${confirmPromote.name} to Admin`);
       setConfirmPromote(null);
-      fetchUsers();
+      fetchData();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to promote teacher');
+    } finally {
+      setActionLoading(false);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleToggleLicense = async (orgName, currentStatus) => {
+    setActionLoading(true);
+    const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+    try {
+      const res = await api.put(`/admin/organizations/${orgName}/status`, { status: newStatus });
+      setSuccessMsg(res.data.message);
+      fetchData();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update organization status');
     } finally {
       setActionLoading(false);
       setTimeout(() => setSuccessMsg(''), 4000);
@@ -125,155 +149,261 @@ const AdminUsers = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-4 border-b border-gray-200 dark:border-gray-800 pb-1 z-10 relative">
+        <button
+          onClick={() => setActiveTab('instructors')}
+          className={`pb-2.5 px-4 font-bold text-sm transition-all border-b-2 cursor-pointer ${
+            activeTab === 'instructors'
+              ? 'border-indigo-500 text-indigo-500'
+              : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          Manage Instructors
+        </button>
+        <button
+          onClick={() => setActiveTab('organizations')}
+          className={`pb-2.5 px-4 font-bold text-sm transition-all border-b-2 cursor-pointer ${
+            activeTab === 'organizations'
+              ? 'border-indigo-500 text-indigo-500'
+              : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          Manage Organizations
+        </button>
+      </div>
+
       {/* Messages */}
       {error && (
-        <div className="bg-red-500/10 text-red-400 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center">
+        <div className="bg-red-500/10 text-red-400 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center z-10 relative">
           <span>{error}</span>
           <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded-full transition"><X size={16} /></button>
         </div>
       )}
       {successMsg && (
-        <div className="bg-green-500/10 text-green-400 p-4 rounded-2xl border border-green-500/20 flex justify-between items-center">
+        <div className="bg-green-500/10 text-green-400 p-4 rounded-2xl border border-green-500/20 flex justify-between items-center z-10 relative">
           <span>{successMsg}</span>
           <button onClick={() => setSuccessMsg('')} className="p-1 hover:bg-green-500/20 rounded-full transition"><X size={16} /></button>
         </div>
       )}
 
-      {/* Controls Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-gray-950 p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-lg">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by name, email, or ID..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm"
-          />
-        </div>
-
-        {/* Organization Filter (Custom Themed Dropdown) */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="w-full pl-11 pr-10 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-between cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <Building2 size={18} className="text-gray-400 absolute left-4" />
-              <span className="text-gray-700 dark:text-gray-300">
-                Organization: <strong className="text-indigo-600 dark:text-indigo-400">{orgFilter}</strong>
-              </span>
-            </span>
-            <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {isDropdownOpen && (
-            <div className="absolute left-0 right-0 mt-2 z-50 rounded-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-2xl p-2 max-h-60 overflow-y-auto space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
-              {organizations.map(org => (
-                <button
-                  key={org}
-                  onClick={() => {
-                    setOrgFilter(org);
-                    setIsDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer ${
-                    orgFilter === org
-                      ? 'bg-indigo-500/10 text-indigo-500 font-bold'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'
-                  }`}
-                >
-                  {org}
-                </button>
-              ))}
+      {/* Instructors Tab */}
+      {activeTab === 'instructors' && (
+        <div className="space-y-6 z-10 relative">
+          {/* Controls Bar */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-gray-950 p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-lg">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search size={18} className="absolute left-4 top-3.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, email, or ID..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-sm"
+              />
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Users Table */}
-      <div className="glass rounded-[32px] overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-800 text-xs font-bold uppercase tracking-wider text-gray-500">
-                <th className="px-6 py-4">User ID</th>
-                <th className="px-6 py-4">Name / Email</th>
-                <th className="px-6 py-4">Role</th>
-                <th className="px-6 py-4">Organization</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-150 dark:divide-gray-800/50 text-sm font-medium">
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map(user => {
-                  const isUserAdmin = user.role === 'admin';
-                  return (
-                    <tr key={user._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/10 transition">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                          {user.userId}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-gray-900 dark:text-white font-bold">{user.name}</span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{user.email}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                          isUserAdmin 
-                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
-                            : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                        }`}>
-                          {isUserAdmin ? 'Administrator' : 'Teacher'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {user.organization || <em className="text-gray-400 dark:text-gray-600 font-normal">Independent</em>}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingUser(user);
-                              setOrgInput(user.organization || '');
-                            }}
-                            className="p-2 rounded-xl text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 border border-transparent hover:border-indigo-500/20 transition"
-                            title="Edit Organization"
-                          >
-                            <Edit size={16} />
-                          </button>
+            {/* Organization Filter (Custom Themed Dropdown) */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full pl-11 pr-10 py-3 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition flex items-center justify-between cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <Building2 size={18} className="text-gray-400 absolute left-4" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Organization: <strong className="text-indigo-600 dark:text-indigo-400">{orgFilter}</strong>
+                  </span>
+                </span>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-                          {!isUserAdmin && (
-                            <button
-                              onClick={() => setConfirmPromote(user)}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md shadow-indigo-500/10"
-                              title="Promote to Admin"
-                            >
-                              <UserCheck size={14} />
-                              Make Admin
-                            </button>
-                          )}
-                        </div>
+              {isDropdownOpen && (
+                <div className="absolute left-0 right-0 mt-2 z-50 rounded-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-2xl p-2 max-h-60 overflow-y-auto space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                  {organizations.map(org => (
+                    <button
+                      key={org}
+                      onClick={() => {
+                        setOrgFilter(org);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer ${
+                        orgFilter === org
+                          ? 'bg-indigo-500/10 text-indigo-500 font-bold'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'
+                      }`}
+                    >
+                      {org}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Users Table */}
+          <div className="glass rounded-[32px] overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-800 text-xs font-bold uppercase tracking-wider text-gray-500">
+                    <th className="px-6 py-4">User ID</th>
+                    <th className="px-6 py-4">Name / Email</th>
+                    <th className="px-6 py-4">Role</th>
+                    <th className="px-6 py-4">Organization</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-150 dark:divide-gray-800/50 text-sm font-medium">
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map(user => {
+                      const isUserAdmin = user.role === 'admin';
+                      return (
+                        <tr key={user._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/10 transition">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                              {user.userId}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span className="text-gray-900 dark:text-white font-bold">{user.name}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{user.email}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                              isUserAdmin 
+                                ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
+                                : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                            }`}>
+                              {isUserAdmin ? 'Administrator' : 'Teacher'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {user.organization || <em className="text-gray-400 dark:text-gray-600 font-normal">Independent</em>}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingUser(user);
+                                  setOrgInput(user.organization || '');
+                                }}
+                                className="p-2 rounded-xl text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 border border-transparent hover:border-indigo-500/20 transition cursor-pointer"
+                                title="Edit Organization"
+                              >
+                                <Edit size={16} />
+                              </button>
+
+                              {!isUserAdmin && (
+                                <button
+                                  onClick={() => setConfirmPromote(user)}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md shadow-indigo-500/10 cursor-pointer"
+                                  title="Promote to Admin"
+                                >
+                                  <UserCheck size={14} />
+                                  Make Admin
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                        No users match your criteria.
                       </td>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                    No users match your criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Organizations License Tab */}
+      {activeTab === 'organizations' && (
+        <div className="glass rounded-[32px] overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl z-10 relative">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-800 text-xs font-bold uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-4">#</th>
+                  <th className="px-6 py-4">Organization Name</th>
+                  <th className="px-6 py-4">License Status</th>
+                  <th className="px-6 py-4">Affiliated Teachers</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-150 dark:divide-gray-800/50 text-sm font-medium">
+                {organizationsList.length > 0 ? (
+                  organizationsList.map((org, index) => {
+                    const isSuspended = org.status === 'suspended';
+                    const affiliatedTeachers = users.filter(u => u.organization === org.name).length;
+                    return (
+                      <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/10 transition">
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-400 font-mono text-xs">{index + 1}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="font-bold text-gray-900 dark:text-white">{org.name}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                            isSuspended 
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
+                              : 'bg-green-500/10 text-green-400 border-green-500/20'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isSuspended ? 'bg-rose-400' : 'bg-green-400'}`} />
+                            {isSuspended ? 'Suspended (Ceased)' : 'Active License'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-gray-500 dark:text-gray-400 font-bold">{affiliatedTeachers} Instructors</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => handleToggleLicense(org.name, org.status)}
+                            disabled={actionLoading}
+                            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition shadow-md cursor-pointer ${
+                              isSuspended
+                                ? 'bg-green-600 hover:bg-green-500 text-white shadow-green-500/10'
+                                : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-500/10'
+                            }`}
+                          >
+                            {isSuspended ? (
+                              <>
+                                <Check size={14} />
+                                Activate License
+                              </>
+                            ) : (
+                              <>
+                                <ShieldAlert size={14} />
+                                Cease License
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                      No active organizations registered on the platform.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* ─── MODAL: Edit Organization ─── */}
       {editingUser && (
@@ -284,7 +414,7 @@ const AdminUsers = () => {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Edit Academic Organization</h3>
                 <p className="text-xs text-gray-500 mt-0.5">Assign or modify organization credentials for {editingUser.name}.</p>
               </div>
-              <button onClick={() => setEditingUser(null)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition">
+              <button onClick={() => setEditingUser(null)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition cursor-pointer">
                 <X size={18} />
               </button>
             </div>
@@ -303,14 +433,14 @@ const AdminUsers = () => {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setEditingUser(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-850 font-bold transition text-sm"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-850 font-bold transition text-sm cursor-pointer"
                 disabled={actionLoading}
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateOrg}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition text-sm shadow-md shadow-indigo-500/20"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition text-sm shadow-md shadow-indigo-500/20 cursor-pointer"
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Saving...' : 'Save Changes'}
@@ -338,14 +468,14 @@ const AdminUsers = () => {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setConfirmPromote(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-850 font-bold transition text-sm"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-850 font-bold transition text-sm cursor-pointer"
                 disabled={actionLoading}
               >
                 Cancel
               </button>
               <button
                 onClick={handlePromoteAdmin}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition text-sm shadow-md shadow-rose-500/20"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition text-sm shadow-md shadow-rose-500/20 cursor-pointer"
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Promoting...' : 'Confirm Promotion'}

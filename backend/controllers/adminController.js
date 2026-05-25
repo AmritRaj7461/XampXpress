@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Exam = require('../models/Exam');
 const Result = require('../models/Result');
+const Organization = require('../models/Organization');
 
 // @desc    Get Admin Dashboard Stats
 // @route   GET /api/admin/stats
@@ -122,9 +123,149 @@ const promoteToAdmin = async (req, res) => {
   }
 };
 
+// @desc    Get all organizations and status
+// @route   GET /api/admin/organizations
+// @access  Private/Admin
+const getOrganizations = async (req, res) => {
+  try {
+    // Gather distinct organizations from teacher profiles
+    const distinctOrgs = await User.distinct('organization', { role: 'teacher', organization: { $ne: '' } });
+    
+    // Fetch registered license status from Organization model
+    const savedOrgs = await Organization.find({});
+    
+    const orgList = distinctOrgs.map(name => {
+      const matched = savedOrgs.find(o => o.name === name);
+      return {
+        name,
+        status: matched ? matched.status : 'active'
+      };
+    });
+
+    // Also include any organizations in status collection that don't have teachers yet
+    savedOrgs.forEach(org => {
+      if (!distinctOrgs.includes(org.name)) {
+        orgList.push({
+          name: org.name,
+          status: org.status
+        });
+      }
+    });
+
+    res.json(orgList);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update organization status (cease/activate license)
+// @route   PUT /api/admin/organizations/:name/status
+// @access  Private/Admin
+const updateOrganizationStatus = async (req, res) => {
+  try {
+    const { status } = req.body; // 'active' or 'suspended'
+    const name = req.params.name;
+
+    if (!['active', 'suspended'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid organization license status' });
+    }
+
+    let org = await Organization.findOne({ name });
+    if (!org) {
+      org = new Organization({ name, status });
+    } else {
+      org.status = status;
+    }
+    await org.save();
+
+    res.json({
+      message: `Organization license for "${name}" successfully set to ${status === 'suspended' ? 'Ceased (Suspended)' : 'Active'}.`,
+      org
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Run database stats check (REAL)
+// @route   POST /api/admin/diagnose
+// @access  Private/Admin
+const runDiagnostics = async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const stats = await mongoose.connection.db.stats();
+    
+    res.json({
+      status: 'healthy',
+      ping: 'ok',
+      collections: stats.collections,
+      objects: stats.objects,
+      avgObjSize: stats.avgObjSize,
+      dataSize: stats.dataSize,
+      storageSize: stats.storageSize,
+      indexes: stats.indexes,
+      indexSize: stats.indexSize
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Prune AI Mock test records (REAL)
+// @route   POST /api/admin/prune
+// @access  Private/Admin
+const pruneAIResults = async (req, res) => {
+  try {
+    // Delete all Result records of type 'ai'
+    const pruneResult = await Result.deleteMany({ type: 'ai' });
+    res.json({
+      message: `Pruning complete. Deleted ${pruneResult.deletedCount} AI mock test records.`,
+      deletedCount: pruneResult.deletedCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Export system JSON backup (REAL)
+// @route   GET /api/admin/backup
+// @access  Private/Admin
+const backupDatabase = async (req, res) => {
+  try {
+    const users = await User.find({});
+    const exams = await Exam.find({});
+    const results = await Result.find({});
+    const orgs = await Organization.find({});
+
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      database: 'XampXpress MongoDB',
+      usersCount: users.length,
+      examsCount: exams.length,
+      resultsCount: results.length,
+      organizationsCount: orgs.length,
+      users,
+      exams,
+      results,
+      organizations: orgs
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=xampxpress_backup.json');
+    res.send(JSON.stringify(backup, null, 2));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAdminStats,
   getTeachers,
   updateTeacherOrganization,
-  promoteToAdmin
+  promoteToAdmin,
+  getOrganizations,
+  updateOrganizationStatus,
+  runDiagnostics,
+  pruneAIResults,
+  backupDatabase
 };
